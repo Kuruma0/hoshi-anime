@@ -8,7 +8,7 @@ import { RateLimiter } from '@/lib/rateLimiter';
  * VidKing addresses content by TMDB id and season, but the catalogue provider
  * (AniList) knows nothing about TMDB. This service bridges the two.
  *
- * It is a public, documented, unauthenticated mapping API — no scraping and no
+ * It is a public, documented, unauthenticated mapping API, no scraping and no
  * key. Keeping it in its own module means swapping the metadata or playback
  * provider does not drag the mapping along with it.
  *
@@ -66,7 +66,7 @@ export class ArmMappingClient {
         signal,
       });
     } catch (error) {
-      // "No mapping exists" is a real answer, not an outage — the player should
+      // "No mapping exists" is a real answer, not an outage, the player should
       // say the episode is unavailable rather than offer a retry.
       //
       // Verified against the live service: an unmapped or out-of-range id
@@ -87,7 +87,7 @@ export class ArmMappingClient {
   /**
    * Resolve to something VidKing can address.
    *
-   * Returns undefined when no TMDB id exists — the player then reports that the
+   * Returns undefined when no TMDB id exists; the player then reports that the
    * episode is unavailable rather than requesting a guessed id, which would
    * silently play the wrong show.
    */

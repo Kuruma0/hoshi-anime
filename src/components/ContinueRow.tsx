@@ -27,7 +27,7 @@ const ITEM_WIDTH = 148;
 /**
  * Continue Watching / Continue Reading.
  *
- * Wider and shorter than a poster rail — a 16:9 crop reads as "resume" rather
+ * Wider and shorter than a poster rail, a 16:9 crop reads as "resume" rather
  * than "browse", which keeps it visually distinct from the discovery rails
  * directly beneath it. Progress is a 2px bar, the least decoration that still
  * communicates how far in you are.

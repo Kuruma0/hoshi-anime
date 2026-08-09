@@ -206,7 +206,7 @@ export class AniListProvider implements AnimeProvider {
   /**
    * Airings in a UTC window.
    *
-   * Paged internally because a full week of airings exceeds one page — stopping
+   * Paged internally because a full week of airings exceeds one page, stopping
    * at page 1 would silently drop the back half of the week. Capped so a wide
    * range cannot spend the entire rate-limit budget.
    */
@@ -247,7 +247,7 @@ export class AniListProvider implements AnimeProvider {
   /**
    * Relationship graph for a title.
    *
-   * `kind` selects which side of the graph to read from — a manga id and an
+   * `kind` selects which side of the graph to read from, a manga id and an
    * anime id can collide numerically in AniList, so the media type has to be
    * passed rather than inferred.
    */
@@ -290,7 +290,7 @@ export class AniListProvider implements AnimeProvider {
    * Issue a GraphQL request.
    *
    * GraphQL returns HTTP 200 with an `errors` array for application-level
-   * failures, so the HTTP layer alone cannot detect them — they are translated
+   * failures, so the HTTP layer alone cannot detect them; they are translated
    * into ProviderError here.
    */
   private async graphql<T>(

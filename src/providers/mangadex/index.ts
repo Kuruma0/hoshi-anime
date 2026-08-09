@@ -27,7 +27,7 @@ const PAGE_SIZE = 24;
  *
  * Note what is absent: there is no `trending`. MangaDex publishes no trending
  * metric, and inventing one from followedCount would be exactly the fabricated
- * functionality §5 forbids — so `trending` is left out of `supportedSections`
+ * functionality §5 forbids; so `trending` is left out of `supportedSections`
  * and the UI simply never renders that rail for this provider.
  */
 const SECTION_ORDER: Record<MangaSection, { key: string; direction: 'asc' | 'desc' } | undefined> =
@@ -174,7 +174,7 @@ export class MangaDexProvider implements MangaProvider {
           // `includeEmptyPages` / `includeExternalUrl` are deliberately NOT
           // sent. Verified against the live API: passing them narrows the feed
           // rather than widening it, and excluding empty pages hides officially
-          // licensed chapters entirely — every English Chainsaw Man chapter is
+          // licensed chapters entirely; every English Chainsaw Man chapter is
           // Viz-licensed with pages: 0, so the feed would come back empty.
           // Instead the full feed is returned and `isReadable` marks the ones
           // that open off-site.

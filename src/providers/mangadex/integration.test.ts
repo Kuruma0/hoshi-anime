@@ -15,7 +15,7 @@ const provider = new MangaDexProvider({
   userAgent: 'HoshiAnime/1.0 (integration test)',
 });
 
-describe('MangaDexProvider — live', () => {
+describe('MangaDexProvider, live', () => {
   it('searches and returns normalized results', async () => {
     const result = await provider.search('chainsaw man');
 

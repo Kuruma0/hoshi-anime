@@ -3,8 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 /**
  * Local ratings for manga sources.
  *
- * These rate the *source* — reliability, image quality, how complete its
- * chapter list is — not the manga.
+ * These rate the *source*, reliability, image quality, how complete its
+ * chapter list is, not the manga.
  *
  * There is no account system, so these are this device's ratings and are
  * presented that way. Showing a fabricated community average with an invented

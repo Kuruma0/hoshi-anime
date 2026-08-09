@@ -32,8 +32,8 @@ const PRELOAD_RADIUS = 2;
  *
  * Right-to-left mirrors the scroll axis with a horizontal flip on the list and
  * a matching flip on each page, rather than reversing the data. FlashList v2
- * removed `inverted`, and reversing the array would mean every index — resume
- * position, progress, preloading — needed translating between reading order and
+ * removed `inverted`, and reversing the array would mean every index, resume
+ * position, progress, preloading, needed translating between reading order and
  * storage order. Mirroring keeps indices in reading order throughout.
  *
  * `horizontal` cannot be toggled on a mounted list, so the parent remounts this

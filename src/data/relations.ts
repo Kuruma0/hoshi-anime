@@ -50,7 +50,7 @@ export function useAnimeRelations(id: string | undefined) {
  * not the next season).
  *
  * Walking is capped and de-duplicated because long franchises contain cycles
- * — an alternative version can point back into the main line.
+ *; an alternative version can point back into the main line.
  */
 export function useAnimeSeasons(anime: Anime | undefined) {
   const id = anime?.id;
@@ -163,7 +163,7 @@ export interface CrossLink {
  *
  * AniList names the source manga, but that id lives in AniList's space and the
  * reader needs a MangaDex id. There is no shared key, so the AniList title set
- * is matched against MangaDex search results — and `findBestMatch` returns
+ * is matched against MangaDex search results, and `findBestMatch` returns
  * nothing below its confidence threshold rather than guessing.
  */
 export function useMangaForAnime(anime: Anime | undefined) {
@@ -200,7 +200,7 @@ export function useMangaForAnime(anime: Anime | undefined) {
  * The anime adapted from a manga.
  *
  * Exact when the manga provider publishes an AniList id, which MangaDex does
- * for most works — no title matching involved. Falls back to searching by title
+ * for most works, no title matching involved. Falls back to searching by title
  * only when that id is absent.
  */
 export function useAnimeForManga(manga: Manga | undefined) {

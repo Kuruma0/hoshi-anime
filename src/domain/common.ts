@@ -39,7 +39,7 @@ export interface Image {
    * Dominant colour as `#rrggbb`, when the provider computes one.
    *
    * Used to decide whether controls floating over the image should be drawn
-   * light or dark — see lib/contrast.
+   * light or dark, see lib/contrast.
    */
   color?: string;
   width?: number;

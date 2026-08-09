@@ -8,7 +8,7 @@ import { keys } from './keys';
  *
  * The screen asks for a PlaybackTarget and gets one; which source produced it
  * is the chain's business. `retry: false` because a failure here is almost
- * always "no source configured" or "this source has no such episode" — neither
+ * always "no source configured" or "this source has no such episode"; neither
  * improves by asking again, and a spinner that retries twice before showing the
  * real message is worse than showing it immediately.
  */

@@ -75,7 +75,7 @@ export interface AnimeProvider extends ProviderInfo {
   getRecommendations?(id: string, signal?: AbortSignal): Promise<Anime[]>;
 
   /**
-   * Related titles — sequels, prequels, adaptations.
+   * Related titles, sequels, prequels, adaptations.
    *
    * `kind` selects which side of the graph to read, since an id is only unique
    * within a media type. Only defined when `supportsRelations`.
@@ -118,7 +118,7 @@ export interface MangaProvider extends ProviderInfo {
  *
  * Each variant maps onto a player surface the app implements, and the player
  * screen switches on `kind`. Adding a source type that behaves differently
- * means a variant here and a branch in the player — not rewriting the anime
+ * means a variant here and a branch in the player, not rewriting the anime
  * section.
  *
  * There is deliberately no "external" variant: sending the user out to another
@@ -150,7 +150,7 @@ export interface StreamOption {
 }
 
 /**
- * Playback source. Intentionally the narrowest interface in the codebase —
+ * Playback source. Intentionally the narrowest interface in the codebase;
  * the less a stream provider has to know, the easier it is to write one.
  */
 export interface AnimeStreamProvider extends ProviderInfo {

@@ -3,7 +3,7 @@ import type { AnimeSection, MangaSection } from '@/providers/types';
 /**
  * Query keys, in one place.
  *
- * Centralised so invalidation is a single call — saving a title has to refresh
+ * Centralised so invalidation is a single call; saving a title has to refresh
  * the library list, the detail page's saved flag, and Continue Watching, and
  * those three would otherwise drift apart.
  */

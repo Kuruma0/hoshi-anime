@@ -18,7 +18,7 @@ export interface VerticalReaderProps {
  * Continuous vertical reader.
  *
  * Page tracking uses viewability, not scroll offset. Manga pages have wildly
- * different heights — spreads, tall webtoon panels — so deriving a page number
+ * different heights (spreads, tall webtoon panels) so deriving a page number
  * from a scroll fraction is guesswork that drifts badly over a long chapter.
  * Viewability reports the page actually on screen.
  */

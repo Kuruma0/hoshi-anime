@@ -3,7 +3,7 @@
  *
  * ── What the investigation found ──
  *
- * The player is a first-party HTML5 `<video>` driven by HLS.js — no nested ad
+ * The player is a first-party HTML5 `<video>` driven by HLS.js, no nested ad
  * iframe, and no pre-roll spliced into the content stream. Loading an embed and
  * reading its resource list showed two distinct groups of third-party hosts:
  *
@@ -24,12 +24,12 @@
  * ── What is actually implementable ──
  *
  * react-native-webview exposes navigation interception (`onShouldStartLoadWithRequest`,
- * `onOpenWindow`) but **no subresource request interception** — there is no
+ * `onOpenWindow`) but **no subresource request interception**; there is no
  * supported cross-platform hook to cancel an individual script or XHR. So the
  * ad *requests* cannot be filtered without dropping to native code.
  *
  * What can be controlled is where the WebView is allowed to go. That is this
- * app deciding which navigations it honours inside its own player surface — not
+ * app deciding which navigations it honours inside its own player surface, not
  * a modification of the provider's page, and not a defeat of any protection
  * mechanism. It removes precisely the interruptions that matter: redirects,
  * popups, and forced navigation away from playback.
@@ -42,7 +42,7 @@ export interface NavigationRequest {
   url: string;
   /**
    * Whether this is the main frame. Sub-frame loads cannot take the user out of
-   * the app, so they are left alone — see `allowNavigation`.
+   * the app, so they are left alone, see `allowNavigation`.
    */
   isTopFrame?: boolean;
 }
@@ -59,7 +59,7 @@ export interface NavigationPolicy {
  *
  * The allowed origin is derived from that URL rather than hardcoded, so if the
  * provider ever moves domain the player keeps working instead of the policy
- * blocking its own page — the failure mode §17 warns about.
+ * blocking its own page, the failure mode §17 warns about.
  */
 export function createNavigationPolicy(playerUrl: string): NavigationPolicy {
   const playerHost = hostOf(playerUrl) ?? '';

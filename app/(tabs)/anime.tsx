@@ -1,41 +1,44 @@
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AiringCarousel } from '@/components/AiringCarousel';
 import { AppHeader } from '@/components/AppHeader';
 import { ContentRow } from '@/components/ContentRow';
 import { ContinueRow } from '@/components/ContinueRow';
 import { GenreRail } from '@/components/GenreRail';
-import { SectionHeader } from '@/components/SectionHeader';
+import { SectionDivider } from '@/components/SectionDivider';
 import {
-  LEAD_SECTION,
   SECTION_LABEL,
   toRowItem,
   useAnimeGenres,
   useAnimeSection,
-  useAnimeSections,
   useSupportsSection,
 } from '@/data/anime';
 import { useContinueWatching } from '@/data/library';
-import { Text } from '@/design/Text';
-import { color, gutter, hairline, sectionGap, space, touchTarget } from '@/design/tokens';
+import { color, space } from '@/design/tokens';
 import { routes } from '@/lib/routes';
 import type { AnimeSection } from '@/providers/types';
 
 /**
  * Anime home.
  *
- * Ordering is deliberate: anything already in progress comes first, then what
- * is airing now, then genres. Discovery rails follow. The page answers "carry
- * on where I was" before it answers "show me something new".
+ * The order is deliberate information architecture: anything already in
+ * progress, then what is airing right now, then a Discover block for
+ * everything else. The page answers "carry on where I was" before it answers
+ * "show me something new".
+ *
+ * Discovery rails below Discover, in order.
  */
+const DISCOVER_SECTIONS: AnimeSection[] = ['topRated', 'popular', 'upcoming'];
+
 export default function AnimeHomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const sections = useAnimeSections();
-  const hasLeadSection = useSupportsSection(LEAD_SECTION);
   const genres = useAnimeGenres();
   const continueWatching = useContinueWatching();
+  const airing = useAnimeSection('airing');
+  const supportsAiring = useSupportsSection('airing');
 
   return (
     <View style={styles.screen}>
@@ -64,18 +67,26 @@ export default function AnimeHomeScreen() {
           onSelect={(id) => router.push(routes.anime(id))}
         />
 
-        {hasLeadSection ? <AnimeRail section={LEAD_SECTION} /> : null}
+        {supportsAiring ? (
+          <AiringCarousel
+            items={airing.data?.items ?? []}
+            isLoading={airing.isPending}
+            error={airing.error}
+            onRetry={() => void airing.refetch()}
+            onSelect={(id) => router.push(routes.anime(id))}
+          />
+        ) : null}
+
+        <SectionDivider title="Discover" />
 
         <GenreRail
           genres={genres.data ?? []}
           onSelect={(genre) => router.push(routes.genre('anime', genre))}
         />
 
-        {sections.map((section) => (
+        {DISCOVER_SECTIONS.map((section) => (
           <AnimeRail key={section} section={section} />
         ))}
-
-        <ScheduleLink onPress={() => router.push(routes.schedule())} />
       </ScrollView>
     </View>
   );
@@ -108,44 +119,7 @@ function AnimeRail({ section }: { section: AnimeSection }) {
   );
 }
 
-/** Entry point to the release schedule, in the run of content rather than a button. */
-function ScheduleLink({ onPress }: { onPress: () => void }) {
-  return (
-    <View style={styles.scheduleBlock}>
-      <SectionHeader title="Release schedule" />
-      <Pressable
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel="Open the release schedule"
-        style={({ pressed }) => [styles.scheduleRow, pressed && styles.pressed]}
-      >
-        <Text variant="body" style={styles.scheduleText}>
-          What&apos;s airing this week
-        </Text>
-        <Text variant="meta" tone="accent" caps>
-          Open
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.bg },
   content: { flexGrow: 1, paddingTop: space.xl },
-  scheduleBlock: { marginBottom: sectionGap },
-  scheduleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: touchTarget,
-    paddingHorizontal: gutter,
-    paddingVertical: space.md,
-    borderTopWidth: hairline,
-    borderTopColor: color.line,
-    borderBottomWidth: hairline,
-    borderBottomColor: color.line,
-  },
-  scheduleText: { flex: 1 },
-  pressed: { backgroundColor: color.surface },
 });

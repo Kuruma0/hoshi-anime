@@ -26,7 +26,7 @@ const TABS = [
 /**
  * Saved titles and in-progress content.
  *
- * Everything here is local storage, so it renders with no network at all — the
+ * Everything here is local storage, so it renders with no network at all, the
  * one screen that always works offline (§25).
  */
 export default function LibraryScreen() {

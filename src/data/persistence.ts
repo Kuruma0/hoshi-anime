@@ -7,7 +7,7 @@ import type { PersistQueryClientOptions } from '@tanstack/react-query-persist-cl
  *
  * Without this, opening the app with no connection produces a screen of error
  * rails. With it, the last-seen home screen renders immediately from disk and
- * revalidates when the network returns — artwork is already on disk courtesy of
+ * revalidates when the network returns; artwork is already on disk courtesy of
  * expo-image, so the result is a usable screen rather than a blank one.
  *
  * This is metadata only. It deliberately does not make the app offline-first:

@@ -14,7 +14,7 @@ describe('createNavigationPolicy', () => {
   });
 });
 
-describe('allowNavigation — player traffic must never be blocked', () => {
+describe('allowNavigation, player traffic must never be blocked', () => {
   it('allows the initial player load', () => {
     expect(policy.allow({ url: PLAYER_URL, isTopFrame: true })).toBe(true);
   });
@@ -28,7 +28,7 @@ describe('allowNavigation — player traffic must never be blocked', () => {
     );
   });
 
-  it('allows blob: URLs — HLS.js hands the video element a MediaSource this way', () => {
+  it('allows blob: URLs; HLS.js hands the video element a MediaSource this way', () => {
     expect(
       policy.allow({ url: 'blob:https://www.vidking.net/ae5b971a-a769', isTopFrame: true })
     ).toBe(true);
@@ -54,7 +54,7 @@ describe('allowNavigation — player traffic must never be blocked', () => {
   });
 });
 
-describe('allowNavigation — off-origin navigation is cancelled', () => {
+describe('allowNavigation; off-origin navigation is cancelled', () => {
   const offOrigin = [
     'https://droned.thewrazeingparrots.cyou/gd/129649',
     'https://drivagebidding.cyou/x',

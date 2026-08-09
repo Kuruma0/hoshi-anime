@@ -8,7 +8,7 @@ export interface MetaItem {
   /** Plain text value. Rows with an empty value are dropped. */
   value?: string;
   /**
-   * Rendered instead of `value` when the row needs more than text — the star
+   * Rendered instead of `value` when the row needs more than text, the star
    * rating, for example. A row with neither is dropped.
    */
   node?: ReactNode;
@@ -18,7 +18,7 @@ export interface MetaItem {
  * Detail-page metadata.
  *
  * A label/value list separated by hairlines rather than a grid of badges or
- * stat tiles — the detail page carries the metadata, and it should not look
+ * stat tiles; the detail page carries the metadata, and it should not look
  * like a dashboard doing it.
  */
 export function MetaList({ items }: { items: MetaItem[] }) {

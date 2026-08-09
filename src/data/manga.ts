@@ -6,7 +6,7 @@ import type { MangaSection } from '@/providers/types';
 import { keys } from './keys';
 
 /**
- * Manga data hooks. Same contract as data/anime.ts — screens see domain models
+ * Manga data hooks. Same contract as data/anime.ts, screens see domain models
  * and nothing else.
  */
 
@@ -86,7 +86,7 @@ export function useChapters(id: string | undefined) {
  * Page images for one chapter.
  *
  * `staleTime` is short and `gcTime` shorter because MangaDex @Home hosts are
- * ephemeral — caching these for hours would serve URLs that 404 mid-read.
+ * ephemeral; caching these for hours would serve URLs that 404 mid-read.
  */
 export function useChapterPages(chapterId: string | undefined) {
   return useQuery({

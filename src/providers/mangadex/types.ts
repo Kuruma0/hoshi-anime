@@ -2,7 +2,7 @@
  * Raw MangaDex API shapes.
  *
  * These types exist only so normalize.ts can be type-checked against reality.
- * Nothing outside src/providers/mangadex/ may import from this file — the
+ * Nothing outside src/providers/mangadex/ may import from this file, the
  * normalizers are the boundary.
  *
  * Shapes verified against live responses from api.mangadex.org.

@@ -13,7 +13,7 @@ export interface SeasonSelectorProps {
  * Jump between seasons of the same series.
  *
  * The chain comes from the provider's prequel/sequel graph, so "Season 2" here
- * means the entry the provider links to — not a title that happens to end in a
+ * means the entry the provider links to; not a title that happens to end in a
  * 2. Renders nothing for a standalone show.
  */
 export function SeasonSelector({ seasons, onSelect }: SeasonSelectorProps) {

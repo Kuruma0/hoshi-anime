@@ -20,7 +20,7 @@ export interface CrossLinkRowProps {
  *
  * A single row rather than a card: it is a navigation affordance sitting in the
  * run of the page, and it only renders when a counterpart was actually
- * identified — no dead "not available" state.
+ * identified, no dead "not available" state.
  */
 export function CrossLinkRow({
   label,

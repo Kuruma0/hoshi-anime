@@ -10,7 +10,7 @@ export interface PosterCardProps {
   width: number;
   onPress: () => void;
   /**
-   * One short line under the title — status, episode count, chapter number.
+   * One short line under the title, status, episode count, chapter number.
    * Deliberately singular: §6 says browsing surfaces show artwork and title,
    * not a metadata dump.
    */
@@ -24,7 +24,7 @@ export interface PosterCardProps {
 /**
  * The recurring browse item, for both anime posters and manga covers.
  *
- * Not a card in the visual sense — no container, no border, no shadow. It is
+ * Not a card in the visual sense; no container, no border, no shadow. It is
  * artwork with text beneath it, sitting directly on the page background.
  */
 export function PosterCard({

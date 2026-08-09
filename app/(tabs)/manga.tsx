@@ -20,8 +20,8 @@ import type { MangaSection } from '@/providers/types';
 /**
  * Manga home.
  *
- * Same shape as the anime page — in-progress first, then genres, then discovery
- * — but the lead rail is recently-updated rather than trending, because the
+ * Same shape as the anime page, in-progress first, then genres, then discovery
+ *; but the lead rail is recently-updated rather than trending, because the
  * question a reader returns with is "what has new chapters".
  */
 export default function MangaHomeScreen() {

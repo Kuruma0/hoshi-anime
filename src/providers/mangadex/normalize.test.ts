@@ -63,7 +63,7 @@ describe('pickLocalized', () => {
   });
 
   it('falls back to romanised Japanese when there is no English key', () => {
-    // The real Chainsaw Man case — reading `.en` directly would return nothing.
+    // The real Chainsaw Man case; reading `.en` directly would return nothing.
     expect(pickLocalized({ 'ja-ro': 'Chainsaw Man' })).toBe('Chainsaw Man');
   });
 
@@ -83,7 +83,7 @@ describe('collectAltTitles', () => {
     expect(titles).toContain('Chainsaw Man');
     expect(titles).toContain('チェンソーマン');
     expect(titles).toContain('Testere Adam');
-    // Present in both `title` and `altTitles` — must appear once.
+    // Present in both `title` and `altTitles`, must appear once.
     expect(titles.filter((t) => t === 'Chainsaw Man')).toHaveLength(1);
   });
 });

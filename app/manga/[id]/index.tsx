@@ -25,8 +25,8 @@ import { isReadable } from '@/providers/mangadex/normalize';
  * Manga detail (§10).
  *
  * Chapters that are officially licensed carry an `externalUrl` and no pages.
- * Rather than hiding them — which would make a fully-licensed series look like
- * it has no chapters at all — they are listed and marked, and tapping one opens
+ * Rather than hiding them; which would make a fully-licensed series look like
+ * it has no chapters at all; they are listed and marked, and tapping one opens
  * the publisher's site.
  */
 export default function MangaDetailScreen() {
@@ -258,7 +258,7 @@ function ChapterList({
               tone={isCurrent ? 'accent' : 'muted'}
               style={styles.chapterNumber}
             >
-              {chapter.number ?? '—'}
+              {chapter.number ?? ', '}
             </Text>
 
             <View style={styles.chapterText}>

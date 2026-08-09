@@ -7,7 +7,7 @@ import type { AlExternalLink, AlMedia, AlRelationEdge, AlStreamingEpisode } from
 export const PROVIDER_ID = 'anilist';
 
 /**
- * AniList descriptions contain HTML even with `asHtml: false` — `<br>`, `<i>`,
+ * AniList descriptions contain HTML even with `asHtml: false`, `<br>`, `<i>`,
  * and occasional spoiler markup all appear. React Native renders no HTML, so
  * tags become visible text unless stripped here.
  */
@@ -98,7 +98,7 @@ function coverImage(media: AlMedia): Image | undefined {
  * Display title.
  *
  * English first, then romaji. AniList returns `english: null` for a large share
- * of titles — including currently-airing ones — so falling back is the normal
+ * of titles (including currently-airing ones) so falling back is the normal
  * path, not an edge case.
  */
 export function displayTitle(media: AlMedia): string {
@@ -135,7 +135,7 @@ export function alternativeTitles(media: AlMedia): string[] {
  * Trailer, restricted to YouTube.
  *
  * AniList also lists Dailymotion trailers, which the player component cannot
- * embed — returning one anyway would render a broken frame.
+ * embed; returning one anyway would render a broken frame.
  *
  * The id needs trimming: real responses come back with trailing whitespace
  * (e.g. `"LHtdKWJdif4\t"`), which produces a dead embed URL if passed through.
@@ -182,7 +182,7 @@ export function normalizeAnime(media: AlMedia): Anime {
     adult: media.isAdult ?? undefined,
     // MyAnimeList id is carried through because most third-party stream sources
     // key their catalogues on MAL rather than AniList. Read only by stream
-    // providers resolving a URL template — never by UI.
+    // providers resolving a URL template, never by UI.
     providerMeta: media.idMal ? { malId: media.idMal } : undefined,
   };
 }
@@ -192,7 +192,7 @@ export function normalizeAnime(media: AlMedia): Anime {
  *
  * `SOURCE` and `ADAPTATION` both collapse to `adaptation`: from an anime the
  * manga is its SOURCE, and from the manga the anime is its ADAPTATION. The UI
- * asks the same question in both directions — "is there a counterpart" — so the
+ * asks the same question in both directions ("is there a counterpart") so the
  * distinction is noise here.
  */
 const RELATION_MAP: Record<string, RelationKind> = {
@@ -242,7 +242,7 @@ export function normalizeRelations(
  * Pull the episode number out of a streaming episode title.
  *
  * AniList surfaces these from streaming partners in the form
- * "Episode 12 - The Title", but the format is not guaranteed — some entries are
+ * "Episode 12 - The Title", but the format is not guaranteed; some entries are
  * bare titles. Returning undefined for those is correct; they simply do not
  * enrich a numbered episode.
  */
@@ -257,14 +257,14 @@ export function parseStreamingEpisodeNumber(title: string | null | undefined): n
 /** Strip the "Episode N - " prefix, leaving just the episode's own title. */
 export function stripEpisodePrefix(title: string | null | undefined): string | undefined {
   if (!title) return undefined;
-  const stripped = title.replace(/^\s*Episode\s+\d+\s*[-–—:]\s*/i, '').trim();
+  const stripped = title.replace(/^\s*Episode\s+\d+\s*[-–, :]\s*/i, '').trim();
   return stripped && stripped !== title.trim() ? stripped : undefined;
 }
 
 /**
  * Build the episode list.
  *
- * AniList has no canonical per-episode endpoint — it exposes a total count plus
+ * AniList has no canonical per-episode endpoint; it exposes a total count plus
  * a partial `streamingEpisodes` array contributed by streaming partners. So the
  * list is generated from the count and enriched where a streaming entry can be
  * matched by number.

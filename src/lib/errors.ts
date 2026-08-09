@@ -2,7 +2,7 @@
  * Provider-agnostic error taxonomy.
  *
  * Providers translate their own failures into these. The UI switches on `kind`
- * and never sees an HTTP status code or a provider-specific error shape — that
+ * and never sees an HTTP status code or a provider-specific error shape; that
  * is what lets a provider be swapped without touching a screen.
  */
 

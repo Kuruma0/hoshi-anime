@@ -13,7 +13,7 @@ export class RateLimiter {
   private draining = false;
 
   constructor(
-    /** Bucket size — the most requests allowed in a burst. */
+    /** Bucket size, the most requests allowed in a burst. */
     private readonly capacity: number,
     /** Tokens replenished per second. */
     private readonly refillPerSecond: number

@@ -31,7 +31,7 @@ import { formatCountdown } from '@/lib/schedule';
 /**
  * Anime detail.
  *
- * WATCH is the single filled purple element on the screen — everything else is
+ * WATCH is the single filled purple element on the screen; everything else is
  * an outline or plain text, which is what makes the primary action obvious
  * without a banner or a floating button.
  */
@@ -39,7 +39,7 @@ export default function AnimeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  // Pushes rather than replaces, and ignores a tap on the title already open —
+  // Pushes rather than replaces, and ignores a tap on the title already open;
   // so back always returns to the screen actually navigated from.
   const navigate = useContentNavigation(id);
 
@@ -150,7 +150,7 @@ export default function AnimeDetailScreen() {
           <View style={styles.block}>
             {/*
               Pushes, not replaces. A season jump is navigation, and replacing
-              erased the season you came from — which is what made back appear
+              erased the season you came from; which is what made back appear
               to skip all the way to Anime Home.
             */}
             <SeasonSelector

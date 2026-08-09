@@ -11,7 +11,7 @@ export interface Anime {
   originalTitle?: string;
   /**
    * Romaji plus every synonym the provider knows. This is what makes searching
-   * "Shingeki no Kyojin" find "Attack on Titan" — see lib/titleMatch.
+   * "Shingeki no Kyojin" find "Attack on Titan", see lib/titleMatch.
    */
   alternativeTitles: string[];
   synopsis?: string;
@@ -39,7 +39,7 @@ export interface Anime {
   adult?: boolean;
   /**
    * Raw provider payload, kept so a provider can round-trip its own data.
-   * Nothing under `app/` may read this — that rule is what keeps the UI
+   * Nothing under `app/` may read this; that rule is what keeps the UI
    * provider-agnostic.
    */
   providerMeta?: Record<string, unknown>;

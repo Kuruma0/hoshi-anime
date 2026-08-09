@@ -4,7 +4,7 @@ export type MangaStatus = 'ongoing' | 'completed' | 'hiatus' | 'cancelled' | 'un
 
 /**
  * MangaDex classifies every title and defaults its search to include suggestive
- * and erotica. Modelling this is not optional — omitting it would mean shipping
+ * and erotica. Modelling this is not optional; omitting it would mean shipping
  * an app that puts adult covers on the trending row by default.
  */
 export type ContentRating = 'safe' | 'suggestive' | 'erotica' | 'pornographic';
@@ -26,7 +26,7 @@ export interface Manga {
   status: MangaStatus;
   year?: number;
   contentRating: ContentRating;
-  /** Last chapter number as a string — chapters are not reliably integers. */
+  /** Last chapter number as a string; chapters are not reliably integers. */
   lastChapter?: string;
   /** Original language, e.g. "ja", "ko", "zh". */
   originalLanguage?: string;
@@ -36,7 +36,7 @@ export interface Manga {
    * Ids for the same work in other databases, when the provider publishes them.
    *
    * This is what turns "find the anime for this manga" from a title guess into
-   * an exact lookup — MangaDex records the AniList id directly.
+   * an exact lookup, MangaDex records the AniList id directly.
    */
   externalIds?: { anilist?: string; myAnimeList?: string };
   providerMeta?: Record<string, unknown>;

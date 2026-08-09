@@ -58,7 +58,7 @@ export const useSettings = create<SettingsState>()(
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
     }),
     {
-      // v2: streaming-source configuration was removed — playback is now handled
+      // v2: streaming-source configuration was removed; playback is now handled
       // internally, so the old persisted shape is deliberately not migrated.
       name: 'hoshi.settings.v2',
       storage: createJSONStorage(() => AsyncStorage),

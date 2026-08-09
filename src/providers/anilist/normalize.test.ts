@@ -68,7 +68,7 @@ describe('displayTitle', () => {
     expect(displayTitle(yomiNoTsugai)).toBe('Daemons of the Shadow Realm');
   });
 
-  it('falls back to romaji when English is null — the common case', () => {
+  it('falls back to romaji when English is null, the common case', () => {
     const media: AlMedia = { id: 1, title: { romaji: 'Sousou no Frieren', english: null } };
     expect(displayTitle(media)).toBe('Sousou no Frieren');
   });
@@ -79,7 +79,7 @@ describe('displayTitle', () => {
   });
 });
 
-describe('alternativeTitles — the §14 search surface', () => {
+describe('alternativeTitles, the §14 search surface', () => {
   const alternatives = alternativeTitles(yomiNoTsugai);
 
   it('includes romaji so a Japanese-name search matches', () => {
@@ -163,7 +163,7 @@ describe('normalizeAnime', () => {
 });
 
 describe('normalizeTrailer', () => {
-  it('trims the id — real responses carry trailing whitespace', () => {
+  it('trims the id, real responses carry trailing whitespace', () => {
     // Verified live: AniList returned "LHtdKWJdif4\t" for Attack on Titan.
     // Passing that through produces a dead embed URL.
     expect(normalizeTrailer({ id: 'LHtdKWJdif4\t', site: 'youtube' })).toEqual({
@@ -222,7 +222,7 @@ describe('normalizeRelations', () => {
     expect(relations[3]).toMatchObject({ relation: 'sideStory' });
   });
 
-  it('collapses SOURCE and ADAPTATION — the UI asks the same question either way', () => {
+  it('collapses SOURCE and ADAPTATION; the UI asks the same question either way', () => {
     expect(relations[2]?.relation).toBe('adaptation');
   });
 

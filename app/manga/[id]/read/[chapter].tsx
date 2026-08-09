@@ -21,7 +21,7 @@ import { useSettings } from '@/lib/settings';
  *
  * The two reading modes are separate components rather than one list that
  * reconfigures itself. `horizontal` and `inverted` cannot be changed on a
- * mounted list — doing so was the mode-switch crash. Swapping components makes
+ * mounted list; doing so was the mode-switch crash. Swapping components makes
  * the switch a mount, and `resumePage` carries the position across it.
  */
 export default function ReaderScreen() {
@@ -52,7 +52,7 @@ export default function ReaderScreen() {
    *
    * Held in a ref, not state, so updating the visible page counter on every
    * scroll does not remount the list under the reader's finger. It is only read
-   * at mount — which happens on entry and on a mode switch.
+   * at mount, which happens on entry and on a mode switch.
    */
   const resumePage = useRef(0);
   const restoredFor = useRef<string | undefined>(undefined);

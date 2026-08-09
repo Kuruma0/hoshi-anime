@@ -57,7 +57,7 @@ export function relativeLuminance({ r, g, b }: Rgb): number {
  * Whether a control over this colour should be drawn dark.
  *
  * The threshold sits above the midpoint because these controls also carry a
- * scrim, which darkens the backdrop — assuming a bare background would flip the
+ * scrim, which darkens the backdrop; assuming a bare background would flip the
  * glyph to dark too eagerly on mid-tone artwork.
  */
 export function prefersDarkForeground(hex: string | undefined | null): boolean {

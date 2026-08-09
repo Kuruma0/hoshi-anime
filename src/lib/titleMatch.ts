@@ -81,7 +81,7 @@ export function scoreTitleMatch(query: string, candidate: TitleBearer): number {
     if (!v) continue;
 
     // Tiers top out at 0.95, not 1, specifically so the primary-title bonus
-    // below still separates results inside the exact-match tier — which is the
+    // below still separates results inside the exact-match tier; which is the
     // tier where ranking matters most.
     let score: number;
     if (v === q) score = 0.95;
@@ -101,7 +101,7 @@ export function scoreTitleMatch(query: string, candidate: TitleBearer): number {
   return Math.min(best, 1);
 }
 
-/** Every query word appears somewhere in the candidate — handles reordering. */
+/** Every query word appears somewhere in the candidate, handles reordering. */
 function allWordsPresent(query: string, candidate: string): boolean {
   const words = query.split(' ').filter(Boolean);
   if (words.length < 2) return false;
@@ -112,7 +112,7 @@ function allWordsPresent(query: string, candidate: string): boolean {
  * Stable re-rank of provider results by local match quality.
  *
  * Providers rank by their own relevance and popularity signals, which are
- * usually good — so this only reorders, never filters. Losing a correct result
+ * usually good; so this only reorders, never filters. Losing a correct result
  * to an over-eager local threshold is far worse than showing it second.
  */
 export function rankByTitle<T extends TitleBearer>(query: string, items: T[]): T[] {
@@ -128,7 +128,7 @@ export function rankByTitle<T extends TitleBearer>(query: string, items: T[]): T
  *
  * Used when a stream provider has its own catalogue and no shared id with the
  * metadata provider. Returning undefined is a real outcome the player handles
- * with a manual-search fallback — it does not guess.
+ * with a manual-search fallback; it does not guess.
  */
 export function findBestMatch<T extends TitleBearer>(
   target: TitleBearer,

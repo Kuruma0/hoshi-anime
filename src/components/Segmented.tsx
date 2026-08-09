@@ -12,7 +12,7 @@ export interface SegmentedProps<T extends string> {
 /**
  * Two-to-four way switch, used for Anime/Manga and library tabs.
  *
- * Selection is marked by a purple underline rather than a filled pill — it
+ * Selection is marked by a purple underline rather than a filled pill; it
  * reads as navigation instead of a control, and keeps purple as punctuation.
  */
 export function Segmented<T extends string>({

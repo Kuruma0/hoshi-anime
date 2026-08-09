@@ -5,7 +5,7 @@ import type { MangaProvider } from './types';
  *
  * The UI asks this for the list of sources and never names one directly, so
  * adding a provider is a new entry here plus a class implementing
- * `MangaProvider` — no screen changes.
+ * `MangaProvider`, no screen changes.
  *
  * ── Provider research, recorded here rather than lost in a commit message ──
  *
@@ -28,7 +28,7 @@ import type { MangaProvider } from './types';
  *   Comix        Deferred. Same; no published API docs.
  *
  * Building scrapers or bypassing the gating on any of these was ruled out
- * deliberately — a brittle scraper that breaks on the next markup change is
+ * deliberately; a brittle scraper that breaks on the next markup change is
  * worse than an honest "unsupported".
  */
 

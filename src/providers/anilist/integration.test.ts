@@ -11,7 +11,7 @@ const provider = new AniListProvider({
   userAgent: 'HoshiAnime/1.0 (integration test)',
 });
 
-describe('AniListProvider — live', () => {
+describe('AniListProvider, live', () => {
   it('serves every supported discovery section', async () => {
     for (const section of provider.supportedSections) {
       const result = await provider.getSection(section, { limit: 5 });
@@ -27,7 +27,7 @@ describe('AniListProvider — live', () => {
     expect(result.items[0]?.title.toLowerCase()).toContain('attack on titan');
   }, 30_000);
 
-  it('finds the same title by its romanised Japanese name — §14', async () => {
+  it('finds the same title by its romanised Japanese name, §14', async () => {
     const english = await provider.search('Attack on Titan');
     const romaji = await provider.search('Shingeki no Kyojin');
 
@@ -57,7 +57,7 @@ describe('AniListProvider — live', () => {
   }, 30_000);
 
   it('builds a real episode list', async () => {
-    // Attack on Titan (AniList id 16498) — finished, 25 episodes.
+    // Attack on Titan (AniList id 16498), finished, 25 episodes.
     const episodes = await provider.getEpisodes('anilist:16498');
     expect(episodes.length).toBe(25);
     expect(episodes[0]?.number).toBe(1);

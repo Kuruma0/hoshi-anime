@@ -22,7 +22,7 @@ import {
 /**
  * Release Schedule.
  *
- * Real AniList airing data, bucketed into the viewer's local days — the window
+ * Real AniList airing data, bucketed into the viewer's local days, the window
  * starts at local midnight today, so the first tab always answers "what's
  * airing today". Days with nothing scheduled say so rather than being hidden,
  * which is itself the answer to "is anything on Tuesday".

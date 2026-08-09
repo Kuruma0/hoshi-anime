@@ -12,7 +12,7 @@ export interface SearchBarProps {
 /**
  * Search input.
  *
- * A rectangle on a slightly lighter surface with a hairline underline — no
+ * A rectangle on a slightly lighter surface with a hairline underline, no
  * rounded capsule, no magnifier icon. The placeholder says what it is.
  */
 export function SearchBar({ value, onChange, placeholder = 'Search', autoFocus }: SearchBarProps) {

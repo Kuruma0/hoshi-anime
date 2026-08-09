@@ -11,7 +11,7 @@ import type { AnimeProvider, AnimeStreamProvider, MangaProvider } from './types'
  *
  * This file is the entire cost of replacing a provider. Screens resolve
  * providers through the accessors below and never construct one, so swapping
- * AniList for Jikan — or VidKing for another player — means writing a new class
+ * AniList for Jikan (or VidKing for another player) means writing a new class
  * against the interfaces in types.ts and changing the constructor call here.
  *
  * Providers are instantiated lazily and then reused, because several hold
@@ -67,7 +67,7 @@ export function getMappingClient(): ArmMappingClient {
 /**
  * Playback.
  *
- * A single provider handled internally — there is no user-facing source
+ * A single provider handled internally; there is no user-facing source
  * selection for anime, so nothing here reads from settings.
  */
 export function getStreamProvider(): AnimeStreamProvider {

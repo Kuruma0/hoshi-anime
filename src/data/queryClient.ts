@@ -4,7 +4,7 @@ import { ProviderError } from '@/lib/errors';
 /**
  * Shared query cache.
  *
- * Cache policy here is not tuning — it is a functional requirement. AniList
+ * Cache policy here is not tuning; it is a functional requirement. AniList
  * allows 30 requests/minute, and an anime home screen alone wants six rails, so
  * a short staleTime would exhaust the budget on a single pull-to-refresh.
  * `gcTime` is long so returning to a screen renders instantly from cache and

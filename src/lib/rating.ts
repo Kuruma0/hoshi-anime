@@ -58,7 +58,7 @@ export function formatRatingValue(
 /**
  * Render stars as glyphs.
  *
- * Secondary presentation only — used where a compact visual scale is genuinely
+ * Secondary presentation only; used where a compact visual scale is genuinely
  * more useful than a number, such as the 1–5 tap targets in the source picker.
  */
 export function formatStars(stars: number | undefined): string | undefined {

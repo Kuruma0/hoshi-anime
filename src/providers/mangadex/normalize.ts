@@ -18,7 +18,7 @@ const UPLOADS_BASE = 'https://uploads.mangadex.org';
  *
  * Preference order matters: English first for display, then romanised Japanese
  * (`ja-ro`), then anything. Chainsaw Man, for instance, has its primary title
- * under `ja-ro` and only carries `en` in altTitles — so blindly reading `.en`
+ * under `ja-ro` and only carries `en` in altTitles, so blindly reading `.en`
  * would leave popular titles blank.
  */
 export function pickLocalized(
@@ -93,7 +93,7 @@ const RATINGS: readonly ContentRating[] = ['safe', 'suggestive', 'erotica', 'por
 export function normalizeContentRating(rating: string | undefined): ContentRating {
   const match = RATINGS.find((candidate) => candidate === rating);
   // Unrated content is treated as the most restrictive value rather than the
-  // most permissive — an unknown rating should not slip past a "safe" filter.
+  // most permissive, an unknown rating should not slip past a "safe" filter.
   return match ?? 'pornographic';
 }
 
@@ -102,7 +102,7 @@ export function normalizeContentRating(rating: string | undefined): ContentRatin
  *
  * MangaDex has 77 tags across four groups: content, format, genre, theme.
  * `content` holds advisory warnings and `format` holds publication shape
- * (Oneshot, Web Comic) — neither is a genre, so both are dropped.
+ * (Oneshot, Web Comic); neither is a genre, so both are dropped.
  */
 export function normalizeTags(tags: MdTag[]): string[] {
   return tags
@@ -158,7 +158,7 @@ export function normalizeManga(raw: MdManga): Manga {
 /**
  * Cross-database ids from MangaDex's `links` map.
  *
- * MangaDex keys these by short code — `al` is AniList, `mal` is MyAnimeList.
+ * MangaDex keys these by short code; `al` is AniList, `mal` is MyAnimeList.
  * Only those two are extracted; the rest point at storefronts and reading sites
  * that this app has no use for.
  */
@@ -218,7 +218,7 @@ export function normalizePages(raw: MdAtHome): {
 /**
  * Chapter ordering.
  *
- * Chapter "numbers" are not numbers — "10.5", "Extra" and null all occur. Parse
+ * Chapter "numbers" are not numbers, "10.5", "Extra" and null all occur. Parse
  * what we can, and sort the unparseable to the end by publish date so a oneshot
  * never lands between chapters 1 and 2.
  */

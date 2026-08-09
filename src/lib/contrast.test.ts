@@ -39,7 +39,7 @@ describe('relativeLuminance', () => {
 describe('prefersDarkForeground', () => {
   it('asks for a dark control over pale artwork', () => {
     expect(prefersDarkForeground('#ffffff')).toBe(true);
-    // A real AniList cover colour — pale yellow-green.
+    // A real AniList cover colour, pale yellow-green.
     expect(prefersDarkForeground('#d6e4a1')).toBe(true);
   });
 

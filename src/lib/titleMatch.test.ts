@@ -40,7 +40,7 @@ describe('normalizeTitle', () => {
 /** Any score at or above this is an exact hit on some title variant. */
 const EXACT = 0.95;
 
-describe('scoreTitleMatch — the §14 requirement', () => {
+describe('scoreTitleMatch, the §14 requirement', () => {
   it('matches the English title', () => {
     expect(scoreTitleMatch('Attack on Titan', aot)).toBeGreaterThanOrEqual(EXACT);
   });
@@ -102,7 +102,7 @@ describe('rankByTitle', () => {
   });
 });
 
-describe('findBestMatch — cross-provider matching', () => {
+describe('findBestMatch, cross-provider matching', () => {
   it('matches across providers via a shared synonym', () => {
     const catalogue: TitleBearer[] = [
       { title: 'Chainsaw Man', alternativeTitles: [] },

@@ -13,7 +13,7 @@ export interface ReaderControlsProps {
 /**
  * Reader controls (§29).
  *
- * Lives in the reader, not in global Settings — reading direction is a decision
+ * Lives in the reader, not in global Settings; reading direction is a decision
  * you make about the title in front of you, and burying it two screens away
  * means nobody changes it.
  *
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   },
   pressed: { backgroundColor: color.surface },
   disabled: { opacity: 0.35 },
-  // A 2px bar rather than a radio circle — same language as the selected tab.
+  // A 2px bar rather than a radio circle, same language as the selected tab.
   marker: { width: 2, height: 22, backgroundColor: 'transparent', marginRight: space.md },
   markerSelected: { backgroundColor: color.accentBright },
   optionText: { flex: 1 },

@@ -116,7 +116,7 @@ export function useAnimeByGenre(genre: string | undefined) {
  *
  * `enabled` gates on a trimmed query so clearing the field cancels in flight
  * work instead of firing a request for the empty string. Debouncing happens in
- * the search screen — this hook reacts to an already-settled term.
+ * the search screen; this hook reacts to an already-settled term.
  */
 export function useAnimeSearch(query: string) {
   const trimmed = query.trim();
@@ -146,7 +146,7 @@ export function useAnimeRecommendations(id: string | undefined) {
  * The weekly release schedule.
  *
  * The UTC window is derived from the device's local week here, so the provider
- * is never asked to reason about timezones — it just answers a range query.
+ * is never asked to reason about timezones; it just answers a range query.
  */
 export function useSchedule() {
   const provider = getAnimeProvider();

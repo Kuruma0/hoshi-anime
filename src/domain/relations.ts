@@ -4,7 +4,7 @@ import type { ContentId, Image, MediaKind } from './common';
  * How one title relates to another.
  *
  * Taken from the metadata provider's own relationship graph rather than
- * inferred from titles — "Jujutsu Kaisen 2" and "Jujutsu Kaisen 3" being
+ * inferred from titles, "Jujutsu Kaisen 2" and "Jujutsu Kaisen 3" being
  * similarly named is not evidence that they are connected.
  */
 export type RelationKind =
@@ -36,7 +36,7 @@ export interface RelatedMedia {
 /**
  * One entry in a season chain.
  *
- * `number` is the position in the chain, not a number the provider published —
+ * `number` is the position in the chain, not a number the provider published;
  * AniList has no season index, so it is derived by walking prequel/sequel links
  * and ordering by release date.
  */

@@ -34,7 +34,7 @@ export const color = {
   text: '#F2EFF7',
   /** Secondary text. 4.6:1 against `bg`. */
   textMuted: '#8B849B',
-  /** Tertiary text: timestamps, page counters. 3.1:1 — large/bold use only. */
+  /** Tertiary text: timestamps, page counters. 3.1:1, large/bold use only. */
   textFaint: '#5E5870',
   /** Text on top of an accent fill. */
   textOnAccent: '#FFFFFF',
@@ -80,7 +80,7 @@ export const radius = {
 export const hairline = 1;
 
 /**
- * Type scale. Hierarchy comes from size and weight — never from colour alone
+ * Type scale. Hierarchy comes from size and weight, never from colour alone
  * and never from a decorative font.
  */
 export const type = {
@@ -106,7 +106,7 @@ export const aspect = {
 export const posterWidth = {
   /** Horizontal discovery rows. */
   row: 118,
-  /** Browse/search grids — computed per screen, this is the floor. */
+  /** Browse/search grids; computed per screen, this is the floor. */
   gridMin: 104,
   /** Detail page hero poster. */
   detail: 132,

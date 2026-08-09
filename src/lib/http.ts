@@ -27,7 +27,7 @@ export interface RequestOptions {
  * asks to centralise: rate limiting, timeouts, retry/backoff, and translation of
  * every failure mode into a ProviderError.
  *
- * It deliberately knows nothing about anime or manga — providers layer meaning
+ * It deliberately knows nothing about anime or manga, providers layer meaning
  * on top of it.
  */
 export class HttpClient {
@@ -52,7 +52,7 @@ export class HttpClient {
         if (!(error instanceof ProviderError) || !error.retryable) throw error;
         lastError = error;
 
-        // Caller aborted (screen unmounted, new search keystroke) — stop.
+        // Caller aborted (screen unmounted, new search keystroke), stop.
         if (options.signal?.aborted) throw error;
         if (attempt === this.maxRetries) break;
 

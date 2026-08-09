@@ -17,7 +17,7 @@ export interface FloatingBackProps {
  * artwork's own dominant colour, and sits on a small scrim so it stays legible
  * over a busy image regardless.
  *
- * Deliberately not a full-width bar and not a circle with a shadow — it is one
+ * Deliberately not a full-width bar and not a circle with a shadow; it is one
  * glyph on the smallest scrim that keeps it readable.
  */
 export function FloatingBack({ backdropColor }: FloatingBackProps) {

@@ -8,7 +8,7 @@ import { messageFor } from '@/lib/errors';
  * The three states every network-dependent surface must handle (§24).
  *
  * They share a layout so a screen never jumps between states, and the error
- * copy comes from lib/errors rather than being written at each call site — the
+ * copy comes from lib/errors rather than being written at each call site, the
  * message a user sees depends on what actually failed.
  */
 

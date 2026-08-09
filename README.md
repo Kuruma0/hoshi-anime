@@ -38,9 +38,9 @@ variable belongs in `.gitignore`'d `.env` and documented here.
 One rule holds the whole thing together: **screens never touch a provider.**
 
 ```
-app/                    screens — JSX and hooks only, zero fetch calls
+app/                    screens, JSX and hooks only, zero fetch calls
  └── imports from ─┐
-src/data/           │   TanStack Query hooks — the only thing screens may import
+src/data/           │   TanStack Query hooks, the only thing screens may import
  └── calls ─────────┤
 src/providers/      │   registry.ts picks the implementation
  ├── types.ts       │   AnimeProvider · MangaProvider · AnimeStreamProvider
@@ -63,28 +63,28 @@ Two rules keep it that way:
 
 1. Providers throw `ProviderError` (`src/lib/errors.ts`) and nothing else.
 2. Providers return domain models. `providerMeta` is an escape hatch other
-   providers may read — **never `app/`**.
+   providers may read, **never `app/`**.
 
 ---
 
 ## Provider integrations
 
-### Anime metadata — AniList
+### Anime metadata, AniList
 
 Public GraphQL, no key. **30 requests/minute**, the tightest constraint in the
-app — hence the token bucket in `src/lib/rateLimiter.ts` and the long
+app, hence the token bucket in `src/lib/rateLimiter.ts` and the long
 `staleTime` in `src/data/queryClient.ts`.
 
 Backs discovery, search, genres, recommendations, the release schedule, the
 relationship graph (seasons and adaptations), and trailers.
 
-### Anime playback — VidKing
+### Anime playback, VidKing
 
 ```
 https://www.vidking.net/embed/tv/{tmdbId}/{season}/{episode}
 ```
 
-WATCH opens the player directly — no source prompt, no external hand-off.
+WATCH opens the player directly, no source prompt, no external hand-off.
 
 VidKing addresses content by **TheMovieDB** id, which AniList does not publish,
 so [arm.haglund.dev](https://arm.haglund.dev) bridges the two. Watch progress is
@@ -94,7 +94,7 @@ is applied through the `progress` URL parameter.
 
 There is no user-facing source setting; playback is handled internally.
 
-### Manga — MangaDex
+### Manga, MangaDex
 
 Public REST, no auth for reads. ~5 requests/second per IP, requires a
 descriptive `User-Agent`, collections cap at `offset + limit ≤ 10,000`.
@@ -104,10 +104,10 @@ Two behaviours worth knowing, both found against the live API:
 - **No trending metric exists**, so that rail is absent rather than faked from
   follower counts.
 - **Licensed chapters report `pages: 0` with an `externalUrl`.** They are listed
-  and marked "Off-site" — filtering them would make a fully licensed series look
+  and marked "Off-site"; filtering them would make a fully licensed series look
   as though it has no chapters.
 
-### Additional manga sources — investigated, deferred
+### Additional manga sources, investigated, deferred
 
 Each was probed directly. **MangaDex is the only one with a documented,
 legitimate, unauthenticated API.**
@@ -115,7 +115,7 @@ legitimate, unauthenticated API.**
 | Source | Finding |
 |---|---|
 | MangaHook | Self-hosted Cheerio scraper (`localhost:3000`); hosted demo 404s |
-| Consumet | Public API retired — self-hosting only |
+| Consumet | Public API retired, self-hosting only |
 | Comick | `api.comick.fun` no longer resolves |
 | Weeb Central | Serves `text/html`; no API |
 | MangaFire · MangaNato | No official developer API |
@@ -138,18 +138,18 @@ that file on purpose.
 - **No cards.** Content sits on the background, separated by space.
 - **Gradients only as hero scrims**, where they exist for text legibility over
   arbitrary artwork.
-- **Purple is punctuation** — one primary action per screen, one selected item.
+- **Purple is punctuation**, one primary action per screen, one selected item.
 - **Text-only tab bar.** "Anime" and "Manga" have no meaningful glyph.
 
 ---
 
 ## Testing
 
-`npm test` — 149 unit tests, no network. Response normalization, cross-language
+`npm test`, 149 unit tests, no network. Response normalization, cross-language
 title matching, chapter ordering, timezone bucketing, rating normalization,
 contrast maths, VidKing URL building and event parsing.
 
-`npm run test:integration` — 29 live tests against AniList, MangaDex and the ARM
+`npm run test:integration`, 29 live tests against AniList, MangaDex and the ARM
 mapping service. Real search, pagination, every discovery section, real page
 images, the relationship graph, and error mapping.
 
@@ -161,7 +161,7 @@ images, the relationship graph, and error mapping.
   (`color`, `autoPlay`, `nextEpisode`, `episodeSelector`, `progress`) and none
   of them relate to advertising. Ads arrive as third-party scripts and XHR from
   ad-exchange hosts, and react-native-webview offers no supported hook to cancel
-  an individual subresource — so those requests cannot be filtered without
+  an individual subresource; so those requests cannot be filtered without
   native code. What *is* controlled is navigation: `playbackPolicy.ts` cancels
   any attempt to take the player off its own site and refuses popups, which
   removes the redirect and popup interruptions. Non-interruptive in-page ads
@@ -175,7 +175,7 @@ images, the relationship graph, and error mapping.
   its own id space; MangaDex has no shared key, so the link is made by confident
   title match and labelled "matched by title". Manga → anime is exact, via
   MangaDex's published AniList id.
-- **Chapter lists can contain duplicates** — several scanlation groups publish
+- **Chapter lists can contain duplicates**, several scanlation groups publish
   the same chapter. That is real MangaDex data; the group is shown so you can
   choose.
 - **Source ratings are local.** With no account system there is no community

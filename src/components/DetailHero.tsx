@@ -18,7 +18,7 @@ export interface DetailHeroProps {
 
 /**
  * Tall enough that the artwork still reads once the status bar and the floating
- * back control overlap its top edge — those now sit *on* the image rather than
+ * back control overlap its top edge, those now sit *on* the image rather than
  * above it.
  */
 const BANNER_HEIGHT = 280;
@@ -27,7 +27,7 @@ const BANNER_HEIGHT = 280;
  * Detail-page header.
  *
  * The banner runs full-bleed behind the status bar with the poster overlapping
- * its lower edge — cinematic rather than a card sitting on a page. When a title
+ * its lower edge, cinematic rather than a card sitting on a page. When a title
  * has no banner the poster still anchors the layout, so the composition does
  * not depend on artwork that may not exist.
  */

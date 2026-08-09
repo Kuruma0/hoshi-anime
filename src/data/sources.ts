@@ -40,7 +40,7 @@ export function useMangaSources(manga: Manga | undefined) {
 
           if (!mangaId) return { ...base, unavailable: true };
 
-          // limit: 1 — we want the reported total, not the chapters themselves.
+          // limit: 1; we want the reported total, not the chapters themselves.
           const chapters = await provider.getChapters(mangaId, {
             language,
             limit: 1,

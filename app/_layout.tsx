@@ -16,7 +16,7 @@ import { useSettings } from '@/lib/settings';
  * Application shell.
  *
  * The player and reader are declared here, above the tab navigator, so they
- * present full-bleed with no tab bar — both are immersive surfaces where
+ * present full-bleed with no tab bar; both are immersive surfaces where
  * persistent navigation chrome would compete with the content.
  */
 

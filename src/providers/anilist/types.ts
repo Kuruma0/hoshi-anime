@@ -7,7 +7,7 @@
 
 export interface AlTitle {
   romaji?: string | null;
-  /** Frequently null — many titles have no official English name. */
+  /** Frequently null; many titles have no official English name. */
   english?: string | null;
   native?: string | null;
 }
@@ -62,7 +62,7 @@ export interface AlMedia {
   startDate?: { year?: number | null } | null;
   /** `site` is usually "youtube" but can be "dailymotion". */
   trailer?: { id?: string | null; site?: string | null; thumbnail?: string | null } | null;
-  /** ANIME | MANGA — present on relation nodes. */
+  /** ANIME | MANGA, present on relation nodes. */
   type?: string | null;
 }
 

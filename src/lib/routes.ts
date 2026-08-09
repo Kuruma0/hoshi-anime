@@ -6,12 +6,12 @@ import type { ContentId, MediaKind } from '@/domain/common';
  *
  * Previously each screen built its own `/anime/${encodeURIComponent(id)}`
  * string. That is the kind of duplication that lets one call site quietly
- * forget to encode an id — and ids contain a colon.
+ * forget to encode an id, and ids contain a colon.
  *
  * Typed routes are on, so `router.push` wants a `Href` rather than a string.
  * Paths built from runtime values cannot be checked against the generated route
- * union, so they are asserted here — once, in the module whose job is to get
- * them right — instead of at every call site.
+ * union, so they are asserted here; once, in the module whose job is to get
+ * them right, instead of at every call site.
  */
 const href = (path: string): Href => path as Href;
 

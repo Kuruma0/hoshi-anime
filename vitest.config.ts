@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
 
-// Tests cover the provider/domain layers only — pure TypeScript with no React
+// Tests cover the provider/domain layers only, pure TypeScript with no React
 // Native imports. UI is verified by running the app, not by a DOM emulator.
 export default defineConfig({
   resolve: {

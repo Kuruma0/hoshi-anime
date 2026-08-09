@@ -18,7 +18,7 @@ import type { PlaybackTarget } from '@/providers/types';
 /**
  * The player.
  *
- * WATCH lands here directly — no source prompt, no "watch on" list, no trip out
+ * WATCH lands here directly, no source prompt, no "watch on" list, no trip out
  * to another site. The stream provider resolves the episode and this screen
  * renders whichever surface it returned.
  */
@@ -84,7 +84,7 @@ export default function WatchScreen() {
 
 function episodeLabel(episode: Episode | undefined, fallbackNumber: number): string {
   const number = episode?.number ?? fallbackNumber;
-  return episode?.title ? `Episode ${number} — ${episode.title}` : `Episode ${number}`;
+  return episode?.title ? `Episode ${number}, ${episode.title}` : `Episode ${number}`;
 }
 
 function PlaybackSurface({
@@ -104,7 +104,7 @@ function PlaybackSurface({
 }
 
 /* ------------------------------------------------------------------ */
-/* embed — VidKing                                                     */
+/* embed, VidKing                                                     */
 /* ------------------------------------------------------------------ */
 
 /** Persist at most this often. `timeupdate` fires far more frequently. */
@@ -218,7 +218,7 @@ function EmbedPlayer({
         onShouldStartLoadWithRequest={(request) =>
           navigationPolicy.allow({ url: request.url, isTopFrame: request.isTopFrame })
         }
-        // Popups and new windows are refused outright — there is nothing in a
+        // Popups and new windows are refused outright; there is nothing in a
         // player that legitimately needs one.
         setSupportMultipleWindows={false}
         javaScriptCanOpenWindowsAutomatically={false}
@@ -234,7 +234,7 @@ function EmbedPlayer({
 const NOOP = () => {};
 
 /* ------------------------------------------------------------------ */
-/* direct — native playback                                            */
+/* direct, native playback                                            */
 /* ------------------------------------------------------------------ */
 
 /**

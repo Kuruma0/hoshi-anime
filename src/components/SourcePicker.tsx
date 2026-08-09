@@ -21,7 +21,7 @@ export interface SourcePickerProps {
 /**
  * Choose where to read from.
  *
- * Every figure here comes from the provider — chapter counts are the totals it
+ * Every figure here comes from the provider; chapter counts are the totals it
  * reports for the selected language. A source that could not be reached is
  * listed as unavailable rather than omitted, so it is clear the app tried.
  *

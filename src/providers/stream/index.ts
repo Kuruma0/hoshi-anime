@@ -19,8 +19,8 @@ export {
 
 /**
  * Playback interruption control. Isolated here rather than spread through the
- * anime screens, so the player surface asks one question — "may I navigate
- * there?" — and nothing else in the app knows about it.
+ * anime screens, so the player surface asks one question, "may I navigate
+ * there?"; and nothing else in the app knows about it.
  */
 export {
   allowNavigation,

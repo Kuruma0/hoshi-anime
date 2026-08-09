@@ -4,7 +4,7 @@ import type { ScheduleEntry } from '@/domain/anime';
  * Weekly schedule time handling.
  *
  * Providers report airing times as Unix seconds in UTC. Everything the user
- * sees is in their own timezone, so the conversion happens here once — §15
+ * sees is in their own timezone, so the conversion happens here once, §15
  * calls out timezone handling specifically, and getting it wrong shows up as an
  * anime appearing on the wrong day for anyone not near UTC.
  */
@@ -56,7 +56,7 @@ export function weekDays(now: Date = new Date()): { date: Date; dayIndex: DayInd
  *
  * Keyed by local date rather than by weekday number, because a seven-day window
  * starting today spans two different instances of the same weekday at its
- * edges — bucketing by weekday alone would merge them.
+ * edges; bucketing by weekday alone would merge them.
  */
 export function groupByLocalDate(entries: ScheduleEntry[]): Map<string, ScheduleEntry[]> {
   const groups = new Map<string, ScheduleEntry[]>();

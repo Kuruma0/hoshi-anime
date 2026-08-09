@@ -6,8 +6,8 @@ import { routes } from './routes';
 /**
  * Content navigation.
  *
- * Detail pages link to other detail pages — seasons, recommendations,
- * adaptations — and every one of those must behave like a real stack: back
+ * Detail pages link to other detail pages, seasons, recommendations,
+ * adaptations, and every one of those must behave like a real stack: back
  * returns to the screen you actually came from, not to a hardcoded parent.
  *
  * Two rules live here so no screen has to remember them:

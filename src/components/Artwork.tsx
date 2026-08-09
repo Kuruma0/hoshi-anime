@@ -21,7 +21,7 @@ export interface ArtworkProps {
 /**
  * All artwork renders through here.
  *
- * Wraps expo-image specifically for its native disk + memory cache — the app
+ * Wraps expo-image specifically for its native disk + memory cache, the app
  * shows hundreds of covers and a plain RN <Image> re-downloads on every scroll,
  * which is the single largest performance factor on mid-range hardware (§23).
  *

@@ -18,7 +18,7 @@ import { useSettings } from '@/lib/settings';
  * Two full-bleed editorial panels rather than two cards: the artwork runs edge
  * to edge, the label sits on it, and a hairline is the only separator. Backdrops
  * are real covers pulled from the same trending queries the section screens use,
- * so nothing here is decorative filler — and if they have not loaded, the panel
+ * so nothing here is decorative filler; and if they have not loaded, the panel
  * degrades to a flat surface instead of a broken image.
  *
  * Deliberately absent: stats, banners, account state, settings. This screen has

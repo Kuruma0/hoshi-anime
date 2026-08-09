@@ -17,7 +17,7 @@ export interface AppHeaderProps {
  * The persistent Hoshi.anime header.
  *
  * Rendered as a sibling of the page's scroll view rather than inside it, which
- * is what actually pins it — a header scrolled as list content cannot stay put
+ * is what actually pins it; a header scrolled as list content cannot stay put
  * no matter how it is styled.
  *
  * Kept to one text row plus the safe-area inset: it is a wordmark, not a

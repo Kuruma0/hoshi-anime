@@ -11,7 +11,7 @@ import { keys } from './keys';
  * Local storage is fast enough that these read on demand rather than mirroring
  * into a store. Mutations invalidate the whole `library` key because saving a
  * title affects the list, the detail page's saved flag, and the continue rails
- * at once — keeping those in sync by hand is how they drift.
+ * at once; keeping those in sync by hand is how they drift.
  */
 
 export function useLibraryEntries(kind: MediaKind) {
@@ -61,7 +61,7 @@ export function useWatchProgress(animeId: ContentId | undefined) {
     queryKey: keys.library.watchProgress(animeId ?? ''),
     // `?? null`: the repository returns undefined when there is no progress,
     // but a query function resolving to undefined is an error in TanStack Query
-    // — the query never settles and resume silently stops working.
+    //, the query never settles and resume silently stops working.
     queryFn: async () => (await library.getWatchProgress(animeId!)) ?? null,
     enabled: Boolean(animeId),
     staleTime: 0,
@@ -84,7 +84,7 @@ export function useSaveWatchProgress() {
  * Continue Watching.
  *
  * Finished episodes are filtered out so a completed show does not sit at the
- * top of the rail forever. Everything else — including a show watched to 90% —
+ * top of the rail forever. Everything else (including a show watched to 90%) 
  * stays resumable.
  */
 export function useContinueWatching(limit = 12) {

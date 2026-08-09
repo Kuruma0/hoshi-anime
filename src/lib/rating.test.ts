@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatRatingValue, formatStars, ratingLabel, starsLabel, toStars } from './rating';
 
-describe('formatRatingValue — the primary rating presentation', () => {
+describe('formatRatingValue, the primary rating presentation', () => {
   it('normalises a 0–100 score to one decimal out of 5', () => {
     expect(formatRatingValue(92)).toBe('4.6');
     expect(formatRatingValue(84)).toBe('4.2');

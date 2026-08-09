@@ -11,7 +11,7 @@ export interface ButtonProps {
   disabled?: boolean;
   /** Fills the available width. Used for the single dominant action. */
   block?: boolean;
-  /** Small leading glyph. Reserved for play/back — not decoration. */
+  /** Small leading glyph. Reserved for play/back, not decoration. */
   glyph?: string;
   style?: ViewStyle;
   accessibilityHint?: string;
@@ -20,7 +20,7 @@ export interface ButtonProps {
 /**
  * Buttons are rectangles.
  *
- * No border radius, no shadow, no gradient — the visual weight comes from fill
+ * No border radius, no shadow, no gradient, the visual weight comes from fill
  * and contrast alone. `primary` is the one purple fill on a screen; anything
  * else uses `secondary` (hairline outline) or `ghost` (text only).
  */

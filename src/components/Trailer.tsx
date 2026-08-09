@@ -14,7 +14,7 @@ export interface TrailerProps {
 /**
  * Trailer embed.
  *
- * The YouTube id comes from the metadata provider — no scraping, no API key,
+ * The YouTube id comes from the metadata provider, no scraping, no API key,
  * no invented URLs. Titles without a trailer simply render nothing.
  *
  * The player mounts only once tapped. Embedding a WebView per detail page would

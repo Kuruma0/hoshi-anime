@@ -8,7 +8,7 @@ import { ArmMappingClient } from './arm';
 
 const client = new ArmMappingClient('HoshiAnime/1.0 (integration test)');
 
-describe('ArmMappingClient — live', () => {
+describe('ArmMappingClient, live', () => {
   it('maps a well-known AniList id to TMDB', async () => {
     // Attack on Titan.
     const target = await client.resolveTmdb(16498);
@@ -20,7 +20,7 @@ describe('ArmMappingClient — live', () => {
   }, 30_000);
 
   it('carries the TMDB season for a later anime season', async () => {
-    // Jujutsu Kaisen — AniList lists seasons separately, TMDB nests them.
+    // Jujutsu Kaisen, AniList lists seasons separately, TMDB nests them.
     const target = await client.resolveTmdb(113415);
     expect(target?.tmdbId).toBe(95479);
     expect(target?.season).toBeGreaterThanOrEqual(1);

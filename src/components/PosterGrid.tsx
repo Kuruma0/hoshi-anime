@@ -29,7 +29,7 @@ export interface PosterGridProps {
  * Paginated poster grid, used by browse and search.
  *
  * Column count is computed from the viewport rather than fixed, so the layout
- * adapts to phone widths and tablets without a second implementation — §19 asks
+ * adapts to phone widths and tablets without a second implementation, §19 asks
  * for the design language to survive a larger screen.
  */
 export function PosterGrid({

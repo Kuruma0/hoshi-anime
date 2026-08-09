@@ -95,7 +95,7 @@ export const EPISODES_QUERY = `
  * Weekly schedule.
  *
  * `airingAt` bounds are Unix seconds in UTC. The caller derives them from the
- * device's local week, and day bucketing happens at render time — AniList is
+ * device's local week, and day bucketing happens at render time; AniList is
  * never asked to reason about the user's timezone.
  */
 export const SCHEDULE_QUERY = `

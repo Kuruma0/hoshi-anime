@@ -26,7 +26,7 @@ export interface WatchProgress {
 export interface ReadProgress {
   mangaId: ContentId;
   chapterId: string;
-  /** As published — "10.5" and "Extra" are both valid. */
+  /** As published; "10.5" and "Extra" are both valid. */
   chapterNumber?: string;
   /** 0-based index of the last page seen. */
   page: number;
@@ -42,7 +42,7 @@ export interface ReadProgress {
  *
  * Local-first by design: no account, no network, works offline from first
  * launch. The interface exists so a synced implementation can be added later
- * without touching a screen — §16 asks for exactly that room.
+ * without touching a screen; §16 asks for exactly that room.
  */
 export interface LibraryRepository {
   getEntries(kind: MediaKind): Promise<LibraryEntry[]>;

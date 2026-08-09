@@ -25,7 +25,7 @@ export interface BrowseListProps {
  * The page behind every "See more".
  *
  * Shared by section and genre browsing because the two differ only in which
- * query feeds them — duplicating this screen per filter type would mean
+ * query feeds them; duplicating this screen per filter type would mean
  * maintaining the same grid, filter and pagination logic twice. Callers map
  * their own domain objects to grid items, so this component stays unaware of
  * whether it is showing anime or manga.
@@ -33,7 +33,7 @@ export interface BrowseListProps {
  * The filter narrows what has already been loaded rather than issuing a request
  * per keystroke: the provider's own search covers a different corpus
  * (everything, not this section), so querying it here would answer a different
- * question than the one asked — and spend rate limit doing it.
+ * question than the one asked; and spend rate limit doing it.
  */
 export function BrowseList({
   kind,

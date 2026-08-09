@@ -22,14 +22,14 @@ import type { AnimeStreamProvider, PlaybackTarget, StreamOption } from '../types
  *
  * The published embed surface exposes exactly the five parameters above. There
  * is no ad-related parameter, no documented ad-free mode, and no player
- * configuration covering advertising — the parameter list was checked against
+ * configuration covering advertising; the parameter list was checked against
  * the provider's own documentation, not assumed.
  *
  * Suppressing ads would therefore mean injecting scripts into, or filtering
  * requests made by, a third-party player in order to alter what it serves. That
  * is tampering with someone else's content delivery, it is not something the
  * provider offers a supported route for, and any such rule set breaks the first
- * time the player's markup changes — taking playback down with it.
+ * time the player's markup changes; taking playback down with it.
  *
  * So it is deliberately not attempted. The parameters that *are* supported are
  * used to keep playback as uninterrupted as the embed allows: `autoPlay` is off
@@ -89,7 +89,7 @@ export class VidKingProvider implements AnimeStreamProvider {
   /**
    * Same URL with a resume position applied.
    *
-   * Kept separate from `resolve` so the PlaybackTarget stays cacheable — the
+   * Kept separate from `resolve` so the PlaybackTarget stays cacheable, the
    * resume offset changes every few seconds and would otherwise bust the cache
    * on every progress tick.
    */
@@ -150,7 +150,7 @@ export interface VidKingEvent {
  *
  * The player posts to `window.parent`, which inside a WebView is the page
  * itself, so the events never reach the app without this bridge. It only
- * listens and re-posts — it does not alter the player's behaviour.
+ * listens and re-posts; it does not alter the player's behaviour.
  */
 export const VIDKING_EVENT_BRIDGE = `
 (function () {
