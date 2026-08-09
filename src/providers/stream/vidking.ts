@@ -18,24 +18,16 @@ import type { AnimeStreamProvider, PlaybackTarget, StreamOption } from '../types
  * below, which is what makes real watch-progress tracking possible rather than
  * inferring progress from the user having tapped an episode.
  *
- * ── On advertisements ──
+ * On advertisements: the published embed surface exposes exactly the five
+ * parameters above, with no ad-related option. Nothing here tries to suppress
+ * advertising. There is no request filtering, no navigation interception and no
+ * injected blocking script, because this provider's job is to be a dependable
+ * fallback and a quieter but fragile player is worth less than a working one.
  *
- * The published embed surface exposes exactly the five parameters above. There
- * is no ad-related parameter, no documented ad-free mode, and no player
- * configuration covering advertising; the parameter list was checked against
- * the provider's own documentation, not assumed.
- *
- * Suppressing ads would therefore mean injecting scripts into, or filtering
- * requests made by, a third-party player in order to alter what it serves. That
- * is tampering with someone else's content delivery, it is not something the
- * provider offers a supported route for, and any such rule set breaks the first
- * time the player's markup changes; taking playback down with it.
- *
- * So it is deliberately not attempted. The parameters that *are* supported are
- * used to keep playback as uninterrupted as the embed allows: `autoPlay` is off
- * (mobile WebViews block unattended autoplay, and a player that silently fails
- * to start reads as broken) and `episodeSelector` is off so the player does not
- * present navigation competing with the app's own episode list.
+ * The supported parameters are set for a clean embed: `autoPlay` is off (mobile
+ * WebViews block unattended autoplay, and a player that silently fails to start
+ * reads as broken) and `episodeSelector` is off so the player does not present
+ * navigation competing with the app's own episode list.
  */
 
 const EMBED_BASE = 'https://www.vidking.net/embed';
