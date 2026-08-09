@@ -26,6 +26,11 @@ export class PlaybackService implements AnimeStreamProvider {
   readonly attribution = '';
   readonly kind = 'embed' as const;
 
+  /** Used when the viewer has expressed no preference. */
+  get defaultProviderId(): string | undefined {
+    return this.usable()[0]?.id;
+  }
+
   constructor(
     private readonly providers: AnimeStreamProvider[],
     private readonly runtimes: EmbedRuntime[],
@@ -44,6 +49,37 @@ export class PlaybackService implements AnimeStreamProvider {
   /** Providers that report themselves usable, in priority order. */
   private usable(): AnimeStreamProvider[] {
     return this.providers.filter((provider) => provider.isAvailable());
+  }
+
+  /**
+   * Every provider the user may choose between, in display order.
+   *
+   * Exposed so the player can offer a selector without naming providers
+   * itself; adding one to the registry adds it to the picker.
+   */
+  listProviders(): { id: string; name: string }[] {
+    return this.usable().map((provider) => ({ id: provider.id, name: provider.name }));
+  }
+
+  /**
+   * Resolve using one named provider only.
+   *
+   * No silent substitution: if the chosen provider cannot serve the episode the
+   * caller is told, so the user can pick a different one rather than being
+   * quietly handed something they did not ask for.
+   */
+  async resolveWith(
+    providerId: string,
+    anime: Anime,
+    episode: Episode,
+    signal?: AbortSignal
+  ): Promise<PlaybackTarget> {
+    const provider = this.usable().find((candidate) => candidate.id === providerId);
+
+    if (!provider) {
+      throw new ProviderError('notConfigured', this.id, 'That player is not available.');
+    }
+    return this.attempt(provider, anime, episode, undefined, signal);
   }
 
   /** The runtime that hosts a resolved target, or undefined if unknown. */

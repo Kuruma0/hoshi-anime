@@ -73,18 +73,19 @@ export function getMappingClient(): ArmMappingClient {
 /**
  * Playback.
  *
- * VidLink leads: its anime route is keyed on the MyAnimeList id AniList already
- * gives us, so it reaches a player without a cross-database lookup. VidKing
- * follows as the fallback because it is keyed on TMDB and can therefore cover
- * titles that have no MyAnimeList id.
+ * Order here is the default the player offers first, and it is deliberately
+ * VidKing. VidLink's anime route is the more elegant fit (keyed on the
+ * MyAnimeList id AniList already gives us, so no cross-database lookup sits
+ * between Watch and the player) but its reliability has not been verified, and
+ * defaulting to an unverified player would be guessing on the viewer's behalf.
  *
- * Provider selection is internal. There is no user-facing source setting, so
- * nothing here reads from settings.
+ * The viewer chooses in the player and the choice is remembered, so this order
+ * only decides what a first run sees.
  */
 export function getStreamProvider(): PlaybackService {
   streamProvider ??= new PlaybackService(
-    [new VidLinkProvider(), new VidKingProvider(getMappingClient())],
-    [VIDLINK_RUNTIME, VIDKING_RUNTIME]
+    [new VidKingProvider(getMappingClient()), new VidLinkProvider()],
+    [VIDKING_RUNTIME, VIDLINK_RUNTIME]
   );
   return streamProvider;
 }

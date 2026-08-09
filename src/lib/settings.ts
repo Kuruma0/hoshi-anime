@@ -21,6 +21,15 @@ export interface SettingsState {
   /** Preferred manga source id, remembered per user rather than per title. */
   preferredMangaSource?: string;
 
+  /**
+   * Preferred video provider id.
+   *
+   * Remembered across titles so a viewer who found one that works for them is
+   * not made to choose again on every episode. Undefined means "use the
+   * application default", which is what a first run gets.
+   */
+  preferredVideoProvider?: string;
+
   /* Global */
   reduceMotion: boolean;
 
@@ -31,6 +40,7 @@ export interface SettingsState {
   setDataSaver: (enabled: boolean) => void;
   setKeepAwakeWhileReading: (enabled: boolean) => void;
   setPreferredMangaSource: (sourceId: string | undefined) => void;
+  setPreferredVideoProvider: (providerId: string | undefined) => void;
   setReduceMotion: (enabled: boolean) => void;
 }
 
@@ -55,6 +65,7 @@ export const useSettings = create<SettingsState>()(
       setDataSaver: (dataSaver) => set({ dataSaver }),
       setKeepAwakeWhileReading: (keepAwakeWhileReading) => set({ keepAwakeWhileReading }),
       setPreferredMangaSource: (preferredMangaSource) => set({ preferredMangaSource }),
+      setPreferredVideoProvider: (preferredVideoProvider) => set({ preferredVideoProvider }),
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),
     }),
     {

@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
@@ -9,7 +9,8 @@ import { ErrorState, LoadingState } from '@/components/StateViews';
 import { Button } from '@/design/Button';
 import { useAnime, useAnimeEpisodes } from '@/data/anime';
 import { useSaveWatchProgress, useWatchProgress } from '@/data/library';
-import { useProviderFallback, usePlaybackTarget } from '@/data/playback';
+import { usePlaybackTarget, useVideoProvider } from '@/data/playback';
+import { ProviderPicker } from '@/components/ProviderPicker';
 import { isPlaybackFailureSentinel } from '@/providers/stream/vidlink';
 import { Text } from '@/design/Text';
 import { color, gutter, hairline, space, touchTarget } from '@/design/tokens';
@@ -42,12 +43,21 @@ export default function WatchScreen() {
     return found ?? (episodes.data ? { id: String(episodeNumber), number: episodeNumber } : undefined);
   }, [episodes.data, episodeNumber]);
 
-  // Providers that only revealed they had no stream after their player loaded.
-  const { failed, reportFailure, reset } = useProviderFallback();
-  const playback = usePlaybackTarget(anime.data, episode, failed);
+  const { providers, activeId, select } = useVideoProvider();
+  const playback = usePlaybackTarget(anime.data, episode, activeId);
 
-  // A new episode starts the provider search from the top again.
-  useEffect(() => reset(), [episodeNumber, reset]);
+  /**
+   * Set when the chosen player loaded but then reported it has no stream.
+   * Resolution cannot see that, so the player surface reports it back here.
+   */
+  const [runtimeFailure, setRuntimeFailure] = useState<string | undefined>();
+
+  // A different episode or a different player deserves a fresh attempt.
+  useEffect(() => setRuntimeFailure(undefined), [episodeNumber, activeId]);
+
+  const activeName =
+    providers.find((provider) => provider.id === activeId)?.name ?? 'this player';
+  const alternatives = providers.filter((provider) => provider.id !== activeId);
 
   if (anime.isPending || episodes.isPending) return <LoadingState label="Loading episode" />;
   if (anime.error || !anime.data) {
@@ -79,20 +89,27 @@ export default function WatchScreen() {
         </View>
       </View>
 
-      {/*
-        One loading state for the whole search. The user is never told which
-        provider is being tried, or that a fallback happened at all.
-      */}
+      {/* Switching player is reachable without leaving playback. */}
+      <ProviderPicker providers={providers} activeId={activeId} onSelect={select} />
+
       {playback.isPending ? (
         <LoadingState label="Loading episode" />
-      ) : playback.error || !playback.data ? (
-        <PlaybackError onRetry={() => void playback.refetch()} />
+      ) : playback.error || !playback.data || runtimeFailure ? (
+        <PlaybackError
+          providerName={activeName}
+          alternatives={alternatives}
+          onSelect={select}
+          onRetry={() => {
+            setRuntimeFailure(undefined);
+            void playback.refetch();
+          }}
+        />
       ) : (
         <PlaybackSurface
           target={playback.data}
           anime={anime.data}
           episode={episode!}
-          onProviderFailed={reportFailure}
+          onProviderFailed={setRuntimeFailure}
         />
       )}
     </View>
@@ -104,17 +121,43 @@ function episodeLabel(episode: Episode | undefined, fallbackNumber: number): str
   return episode?.title ? `Episode ${number}, ${episode.title}` : `Episode ${number}`;
 }
 
-/** Plain, provider-neutral failure copy. No internal codes reach the user. */
-function PlaybackError({ onRetry }: { onRetry: () => void }) {
+/**
+ * Failure state.
+ *
+ * Names the player that failed, because that is what tells the viewer switching
+ * might help, and offers the other players directly so nobody is stuck inside a
+ * broken one. No status codes or provider error strings reach the screen.
+ */
+function PlaybackError({
+  providerName,
+  alternatives,
+  onSelect,
+  onRetry,
+}: {
+  providerName: string;
+  alternatives: { id: string; name: string }[];
+  onSelect: (id: string) => void;
+  onRetry: () => void;
+}) {
   return (
     <View style={styles.error}>
       <Text variant="subtitle" style={styles.errorTitle}>
-        Unable to load this episode.
+        Unable to load this episode with {providerName}.
       </Text>
       <Text variant="body" tone="muted" style={styles.errorDetail}>
-        Please try again.
+        Try another player, or try again.
       </Text>
-      <Button label="Try again" variant="secondary" onPress={onRetry} style={styles.errorAction} />
+
+      <View style={styles.errorActions}>
+        {alternatives.map((provider) => (
+          <Button
+            key={provider.id}
+            label={`Try ${provider.name}`}
+            onPress={() => onSelect(provider.id)}
+          />
+        ))}
+        <Button label="Try again" variant="secondary" onPress={onRetry} />
+      </View>
     </View>
   );
 }
@@ -315,7 +358,7 @@ const styles = StyleSheet.create({
   },
   errorTitle: { textAlign: 'center' },
   errorDetail: { textAlign: 'center', marginTop: space.sm },
-  errorAction: { marginTop: space.xl },
+  errorActions: { marginTop: space.xl, alignSelf: 'stretch', gap: space.sm },
   video: { flex: 1 },
   webview: { flex: 1, backgroundColor: color.immersive },
   webviewContainer: { backgroundColor: color.immersive },

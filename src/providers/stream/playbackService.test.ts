@@ -165,6 +165,61 @@ describe('PlaybackService option routing', () => {
   });
 });
 
+describe('PlaybackService explicit provider choice', () => {
+  it('uses exactly the provider named, not the first one', async () => {
+    const service = new PlaybackService(
+      [stubProvider('primary'), stubProvider('secondary')],
+      []
+    );
+
+    expect((await service.resolveWith('secondary', anime, episode)).provider).toBe('secondary');
+  });
+
+  it('reports failure rather than silently substituting another provider', async () => {
+    // The viewer picked this player, so quietly handing them a different one
+    // would ignore the choice they just made.
+    const service = new PlaybackService(
+      [
+        stubProvider('chosen', {
+          resolve: async () => {
+            throw new ProviderError('notFound', 'chosen', 'no source');
+          },
+        }),
+        stubProvider('other'),
+      ],
+      []
+    );
+
+    await expect(service.resolveWith('chosen', anime, episode)).rejects.toMatchObject({
+      kind: 'notFound',
+    });
+  });
+
+  it('reports an unknown provider id clearly', async () => {
+    const service = new PlaybackService([stubProvider('primary')], []);
+    await expect(service.resolveWith('gone', anime, episode)).rejects.toMatchObject({
+      kind: 'notConfigured',
+    });
+  });
+
+  it('lists providers for the picker in registry order', () => {
+    const service = new PlaybackService(
+      [stubProvider('first'), stubProvider('second'), stubProvider('hidden', { available: false })],
+      []
+    );
+
+    expect(service.listProviders().map((provider) => provider.id)).toEqual(['first', 'second']);
+  });
+
+  it('defaults to the first usable provider', () => {
+    const service = new PlaybackService(
+      [stubProvider('off', { available: false }), stubProvider('on')],
+      []
+    );
+    expect(service.defaultProviderId).toBe('on');
+  });
+});
+
 describe('PlaybackService runtimes', () => {
   it('returns the runtime matching a resolved target', () => {
     const service = new PlaybackService(

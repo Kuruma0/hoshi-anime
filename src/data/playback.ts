@@ -1,56 +1,80 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import type { Anime, Episode } from '@/domain/anime';
+import { useSettings } from '@/lib/settings';
 import { getStreamProvider } from '@/providers/registry';
 import { keys } from './keys';
 
 /**
- * Resolve an episode into something playable.
+ * Which player the viewer is using, and how to change it.
  *
- * Providers are tried in order by the playback service, so this hook does not
- * know or care which one answered. `retry: false` because a failure here means
- * every provider declined; asking again changes nothing and a spinner that
- * retries twice before showing the real message is worse than showing it.
+ * The preference is remembered across titles so someone who found a player that
+ * works for them is not asked again on every episode. With no preference set,
+ * the registry's first provider is used.
+ */
+export function useVideoProvider() {
+  const service = getStreamProvider();
+  const preferred = useSettings((state) => state.preferredVideoProvider);
+  const setPreferred = useSettings((state) => state.setPreferredVideoProvider);
+
+  const providers = service.listProviders();
+
+  // A remembered provider that no longer exists must not strand the viewer.
+  const known = providers.some((provider) => provider.id === preferred);
+  const activeId = (known ? preferred : undefined) ?? service.defaultProviderId;
+
+  return {
+    providers,
+    activeId,
+    select: setPreferred,
+  };
+}
+
+/**
+ * Resolve an episode with one specific player.
+ *
+ * There is no silent substitution: the viewer picked a player, so a failure is
+ * reported rather than quietly answered by a different one. The screen turns
+ * that into an offer to switch.
  */
 export function usePlaybackTarget(
   anime: Anime | undefined,
   episode: Episode | undefined,
-  /** Providers that already failed during playback of this episode. */
-  exclude: readonly string[] = []
+  providerId: string | undefined
 ) {
   return useQuery({
-    queryKey: [...keys.anime.playback(anime?.id ?? '', episode?.number ?? 0), ...exclude],
+    queryKey: [
+      ...keys.anime.playback(anime?.id ?? '', episode?.number ?? 0),
+      providerId ?? 'default',
+    ],
     queryFn: ({ signal }) =>
-      getStreamProvider().resolve(anime!, episode!, undefined, signal, exclude),
-    enabled: Boolean(anime && episode),
+      getStreamProvider().resolveWith(providerId!, anime!, episode!, signal),
+    enabled: Boolean(anime && episode && providerId),
+    // Every provider declining is not something a retry changes, and a spinner
+    // that retries twice before showing the real message is worse than showing
+    // it immediately.
     retry: false,
-    // Embed URLs can be short-lived; do not serve a stale one.
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
   });
 }
 
 /**
- * Tracks providers that failed once their player was already running.
+ * Players that failed after their page was already running.
  *
- * A player that answers HTTP 200 and only then reports it has no stream cannot
- * be caught during resolution, so the screen reports the failure back here and
- * the next resolution skips it.
- *
- * Each provider can be reported once. That cap is what stops the fallback from
- * cycling: the list only grows, so every retry has strictly fewer providers to
- * try and the sequence terminates.
+ * Some embeds answer HTTP 200 and only then report they have no stream, so the
+ * failure cannot be seen during resolution. The player screen reports it here
+ * and the UI offers the other provider.
  */
-export function useProviderFallback() {
-  const [failed, setFailed] = useState<readonly string[]>([]);
+export function useReportedFailure() {
+  const service = getStreamProvider();
 
-  const reportFailure = useCallback((providerId: string) => {
-    setFailed((current) =>
-      current.includes(providerId) ? current : [...current, providerId]
-    );
-  }, []);
-
-  const reset = useCallback(() => setFailed([]), []);
-
-  return { failed, reportFailure, reset };
+  return useCallback(
+    (providerId: string) => {
+      // Named for clarity at the call site; the service owns nothing stateful
+      // here, the screen decides what to show.
+      return service.listProviders().filter((provider) => provider.id !== providerId);
+    },
+    [service]
+  );
 }

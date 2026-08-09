@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -15,6 +15,7 @@ import { SectionHeader } from './SectionHeader';
 import { Text } from '@/design/Text';
 import { color, gutter, motion, radius, space } from '@/design/tokens';
 import type { Anime } from '@/domain/anime';
+import { nextSlideIndex, shouldAdvance } from '@/lib/carousel';
 import { useSettings } from '@/lib/settings';
 
 export interface AiringCarouselProps {
@@ -28,6 +29,15 @@ export interface AiringCarouselProps {
 /** Slides are 16:9 and stop short of half the screen, so the rails stay visible. */
 const SLIDE_RATIO = 16 / 9;
 const MAX_SLIDES = 8;
+
+/**
+ * Long enough to read a title and decide, short enough that the section feels
+ * alive. Anything much faster reads as an advert.
+ */
+const ADVANCE_INTERVAL_MS = 5000;
+
+/** Grace period after a touch before the carousel starts moving again. */
+const RESUME_DELAY_MS = 4000;
 
 /**
  * Trending currently airing, as a swipeable carousel.
@@ -51,23 +61,82 @@ export function AiringCarousel({
   const reduceMotion = useSettings((state) => state.reduceMotion);
   const [index, setIndex] = useState(0);
   const lastIndex = useRef(0);
+  const scrollRef = useRef<ScrollView>(null);
+  /** Set while a finger is down, and for a grace period after it lifts. */
+  const interacting = useRef(false);
+  const resumeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const slideWidth = width - gutter * 2;
   const slideHeight = Math.round(slideWidth / SLIDE_RATIO);
+  const stride = slideWidth + space.md;
 
   const slides = items.slice(0, MAX_SLIDES);
+  const showState = isLoading || error || slides.length === 0;
 
   const onScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const next = Math.round(event.nativeEvent.contentOffset.x / (slideWidth + space.md));
+      const next = Math.round(event.nativeEvent.contentOffset.x / stride);
       if (next === lastIndex.current) return;
       lastIndex.current = next;
       setIndex(next);
     },
-    [slideWidth]
+    [stride]
   );
 
-  const showState = isLoading || error || slides.length === 0;
+  /**
+   * Stop advancing while the viewer is handling the carousel, and wait a while
+   * after they let go. Moving the slide out from under someone who has just
+   * touched it is the thing that makes an auto carousel feel hostile.
+   */
+  const holdAutoAdvance = useCallback(() => {
+    interacting.current = true;
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+  }, []);
+
+  const releaseAutoAdvance = useCallback(() => {
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+    resumeTimer.current = setTimeout(() => {
+      interacting.current = false;
+    }, RESUME_DELAY_MS);
+  }, []);
+
+  /**
+   * Advance one slide at a time on a timer.
+   *
+   * A single interval that scrolls the existing list, rather than an animation
+   * driving every frame, so an idle carousel costs one timer and one scroll
+   * command per slide instead of continuous work.
+   *
+   * Skipped entirely when the OS asks for reduced motion, and while a state
+   * placeholder is showing rather than real slides.
+   */
+  useEffect(() => {
+    if (reduceMotion || showState || slides.length < 2) return;
+
+    const timer = setInterval(() => {
+      if (
+        !shouldAdvance({
+          interacting: interacting.current,
+          reduceMotion,
+          slideCount: slides.length,
+        })
+      ) {
+        return;
+      }
+
+      const next = nextSlideIndex(lastIndex.current, slides.length);
+      lastIndex.current = next;
+      setIndex(next);
+      scrollRef.current?.scrollTo({ x: next * stride, animated: true });
+    }, ADVANCE_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [reduceMotion, showState, slides.length, stride]);
+
+  // Never leave a pending resume behind on unmount.
+  useEffect(() => () => {
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+  }, []);
 
   return (
     <View style={styles.section}>
@@ -83,15 +152,22 @@ export function AiringCarousel({
       ) : (
         <>
           <ScrollView
+            ref={scrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             // Snap to slide plus gutter so each card lands in the same place.
-            snapToInterval={slideWidth + space.md}
+            snapToInterval={stride}
             decelerationRate="fast"
             disableIntervalMomentum
             contentContainerStyle={styles.track}
             onScroll={onScroll}
             scrollEventThrottle={16}
+            // Touching the carousel pauses it; it resumes a moment after release.
+            onTouchStart={holdAutoAdvance}
+            onScrollBeginDrag={holdAutoAdvance}
+            onTouchEnd={releaseAutoAdvance}
+            onScrollEndDrag={releaseAutoAdvance}
+            onMomentumScrollEnd={releaseAutoAdvance}
           >
             {slides.map((anime, position) => (
               <Pressable

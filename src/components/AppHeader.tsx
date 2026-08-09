@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Logo } from './Logo';
 import { Text } from '@/design/Text';
 import { color, gutter, hairline, space, touchTarget } from '@/design/tokens';
 import { routes } from '@/lib/routes';
@@ -37,6 +38,7 @@ export function AppHeader({ actionLabel, onAction, context }: AppHeaderProps) {
         hitSlop={space.sm}
         style={({ pressed }) => [styles.brand, pressed && styles.pressed]}
       >
+        <Logo size={22} />
         <Text variant="bodyStrong" style={styles.wordmark}>
           hoshi
           <Text variant="bodyStrong" tone="accent">
@@ -84,8 +86,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: hairline,
     borderBottomColor: color.line,
   },
-  brand: { justifyContent: 'center', minHeight: touchTarget - 12 },
-  wordmark: { letterSpacing: 0.2 },
+  brand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: touchTarget - 12,
+  },
+  wordmark: { letterSpacing: 0.2, marginLeft: space.sm },
   separator: {
     width: hairline,
     height: 12,
