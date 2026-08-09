@@ -31,7 +31,11 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*.local
+# Broadened from `.env*.local`: a plain `.env` was not covered, which is the
+# file most likely to hold a real secret.
+.env
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo
@@ -39,3 +43,21 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# editors
+.vscode/
+.idea/
+*.swp
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# logs and coverage
+*.log
+logs/
+coverage/
+
+# test runner cache
+.vitest/
+node_modules/.vite/

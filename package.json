@@ -1,22 +1,45 @@
 {
   "name": "hoshi-anime",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@shopify/flash-list": "2.0.2",
+    "@tanstack/query-async-storage-persister": "^5.101.4",
+    "@tanstack/react-query": "^5.101.4",
+    "@tanstack/react-query-persist-client": "^5.101.4",
     "expo": "~57.0.11",
+    "expo-constants": "~57.0.9",
+    "expo-image": "~57.0.2",
+    "expo-keep-awake": "~57.0.1",
+    "expo-linear-gradient": "~57.0.1",
+    "expo-linking": "~57.0.5",
+    "expo-router": "~57.0.11",
     "expo-status-bar": "~57.0.1",
+    "expo-video": "~57.0.2",
     "react": "19.2.3",
-    "react-native": "0.86.2"
+    "react-dom": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-web": "^0.21.2",
+    "react-native-webview": "13.16.1",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vitest": "^3.2.7"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "typecheck": "tsc --noEmit"
   },
   "private": true
 }
