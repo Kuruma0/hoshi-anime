@@ -3,6 +3,7 @@ import { parseId } from '@/domain/common';
 import { ProviderError } from '@/lib/errors';
 import { ArmMappingClient } from '../mapping/arm';
 import type { AnimeStreamProvider, PlaybackTarget, StreamOption } from '../types';
+import type { EmbedRuntime, PlaybackProgress } from './types';
 
 /**
  * VidKing playback.
@@ -75,21 +76,14 @@ export class VidKingProvider implements AnimeStreamProvider {
       ? `${EMBED_BASE}/movie/${target.tmdbId}?${movieParams()}`
       : `${EMBED_BASE}/tv/${target.tmdbId}/${target.season}/${episode.number}?${seriesParams()}`;
 
-    return { kind: 'embed', url, referer: 'https://www.vidking.net' };
+    return {
+      kind: 'embed',
+      provider: this.id,
+      url,
+      referer: 'https://www.vidking.net',
+    };
   }
 
-  /**
-   * Same URL with a resume position applied.
-   *
-   * Kept separate from `resolve` so the PlaybackTarget stays cacheable, the
-   * resume offset changes every few seconds and would otherwise bust the cache
-   * on every progress tick.
-   */
-  withResume(url: string, positionSeconds: number): string {
-    if (positionSeconds <= 5) return url;
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}progress=${Math.floor(positionSeconds)}`;
-  }
 }
 
 function seriesParams(): string {
@@ -169,6 +163,38 @@ true;
  * carries traffic from the embedded page too, so this must reject silently
  * rather than throw on every unrelated message.
  */
+/**
+ * VidKing's events, translated into the application's progress shape.
+ *
+ * Pauses, seeks and completion are marked as checkpoints so the player screen
+ * persists them at once rather than waiting for the next throttled tick.
+ */
+export function parseVidKingProgress(raw: string): PlaybackProgress | undefined {
+  const event = parseVidKingEvent(raw);
+  if (!event) return undefined;
+
+  const completed = event.event === 'ended';
+
+  return {
+    // On 'ended' the reported position can lag the true end; pinning it to the
+    // duration is what lets the title drop off Continue Watching.
+    positionSeconds:
+      completed && event.duration > 0 ? event.duration : event.currentTime,
+    durationSeconds: event.duration > 0 ? event.duration : undefined,
+    episodeNumber: event.episode,
+    completed,
+    checkpoint:
+      event.event === 'pause' || event.event === 'ended' || event.event === 'seeked',
+  };
+}
+
+export const VIDKING_RUNTIME: EmbedRuntime = {
+  providerId: 'vidking',
+  bridge: VIDKING_EVENT_BRIDGE,
+  resumeParam: 'progress',
+  parseProgress: parseVidKingProgress,
+};
+
 export function parseVidKingEvent(raw: string): VidKingEvent | undefined {
   try {
     const parsed: unknown = JSON.parse(raw);

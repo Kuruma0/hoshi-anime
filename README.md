@@ -78,7 +78,40 @@ app, hence the token bucket in `src/lib/rateLimiter.ts` and the long
 Backs discovery, search, genres, recommendations, the release schedule, the
 relationship graph (seasons and adaptations), and trailers.
 
-### Anime playback, VidKing
+### Anime playback, VidLink with VidKing fallback
+
+WATCH opens the player directly. There is no source prompt, and the fallback is
+invisible: the user sees one loading state and then the episode.
+
+```
+Watch -> PlaybackService -> VidLink -> playable?  yes -> play
+                                    \  no -> VidKing -> play
+```
+
+**VidLink** leads because it has an anime route keyed on the MyAnimeList id,
+`/anime/{malId}/{episode}/{sub|dub}`, and AniList already gives us that id. No
+cross-database lookup sits between pressing Watch and the player, and there is
+no season-mapping guesswork, which TMDB addressing forces on anime where one
+AniList entry per season has to be reconciled with one TMDB show.
+
+**VidKing** follows because it is keyed on TMDB, so it can serve titles that
+have no MyAnimeList id at all.
+
+Falling back is harder than it sounds: the embed answers HTTP 200 and only then
+renders "episode not found" inside the page, so availability cannot be checked
+before the WebView runs. VidLink documents `fallback_url` for this, so the
+player is given a sentinel address to navigate to when a stream will not load.
+The screen watches for it and asks the service again, excluding the provider
+that failed. The exclusion list only grows, so the sequence always terminates
+and cannot cycle.
+
+Each provider supplies an `EmbedRuntime`: its bridge script, its progress
+parser, and the name of its resume parameter (`startAt` for VidLink, `progress`
+for VidKing). The player screen deals only in `PlaybackProgress` and never names
+a provider, which is what keeps one watch-progress system rather than one per
+player.
+
+### Previously, VidKing only
 
 ```
 https://www.vidking.net/embed/tv/{tmdbId}/{season}/{episode}

@@ -3,8 +3,14 @@ import { getSettings } from '@/lib/settings';
 import { AniListProvider } from './anilist';
 import { ArmMappingClient } from './mapping/arm';
 import { MangaDexProvider } from './mangadex';
-import { VidKingProvider } from './stream';
-import type { AnimeProvider, AnimeStreamProvider, MangaProvider } from './types';
+import {
+  PlaybackService,
+  VIDKING_RUNTIME,
+  VIDLINK_RUNTIME,
+  VidKingProvider,
+  VidLinkProvider,
+} from './stream';
+import type { AnimeProvider, MangaProvider } from './types';
 
 /**
  * Provider wiring.
@@ -26,7 +32,7 @@ const USER_AGENT = `HoshiAnime/${version}`;
 
 let animeProvider: AnimeProvider | undefined;
 let mangaProvider: MangaProvider | undefined;
-let streamProvider: AnimeStreamProvider | undefined;
+let streamProvider: PlaybackService | undefined;
 let armClient: ArmMappingClient | undefined;
 
 export function getAnimeProvider(): AnimeProvider {
@@ -67,11 +73,19 @@ export function getMappingClient(): ArmMappingClient {
 /**
  * Playback.
  *
- * A single provider handled internally; there is no user-facing source
- * selection for anime, so nothing here reads from settings.
+ * VidLink leads: its anime route is keyed on the MyAnimeList id AniList already
+ * gives us, so it reaches a player without a cross-database lookup. VidKing
+ * follows as the fallback because it is keyed on TMDB and can therefore cover
+ * titles that have no MyAnimeList id.
+ *
+ * Provider selection is internal. There is no user-facing source setting, so
+ * nothing here reads from settings.
  */
-export function getStreamProvider(): AnimeStreamProvider {
-  streamProvider ??= new VidKingProvider(getMappingClient());
+export function getStreamProvider(): PlaybackService {
+  streamProvider ??= new PlaybackService(
+    [new VidLinkProvider(), new VidKingProvider(getMappingClient())],
+    [VIDLINK_RUNTIME, VIDKING_RUNTIME]
+  );
   return streamProvider;
 }
 

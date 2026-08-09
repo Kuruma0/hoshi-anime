@@ -1,18 +1,21 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { ErrorState, LoadingState } from '@/components/StateViews';
+import { Button } from '@/design/Button';
 import { useAnime, useAnimeEpisodes } from '@/data/anime';
 import { useSaveWatchProgress, useWatchProgress } from '@/data/library';
-import { usePlaybackTarget } from '@/data/playback';
+import { useProviderFallback, usePlaybackTarget } from '@/data/playback';
+import { isPlaybackFailureSentinel } from '@/providers/stream/vidlink';
 import { Text } from '@/design/Text';
 import { color, gutter, hairline, space, touchTarget } from '@/design/tokens';
 import type { Anime, Episode } from '@/domain/anime';
-import { parseVidKingEvent, VIDKING_EVENT_BRIDGE } from '@/providers/stream';
+import { getStreamProvider } from '@/providers/registry';
+import { withResume } from '@/providers/stream/types';
 import type { PlaybackTarget } from '@/providers/types';
 
 /**
@@ -39,7 +42,12 @@ export default function WatchScreen() {
     return found ?? (episodes.data ? { id: String(episodeNumber), number: episodeNumber } : undefined);
   }, [episodes.data, episodeNumber]);
 
-  const playback = usePlaybackTarget(anime.data, episode);
+  // Providers that only revealed they had no stream after their player loaded.
+  const { failed, reportFailure, reset } = useProviderFallback();
+  const playback = usePlaybackTarget(anime.data, episode, failed);
+
+  // A new episode starts the provider search from the top again.
+  useEffect(() => reset(), [episodeNumber, reset]);
 
   if (anime.isPending || episodes.isPending) return <LoadingState label="Loading episode" />;
   if (anime.error || !anime.data) {
@@ -71,12 +79,21 @@ export default function WatchScreen() {
         </View>
       </View>
 
+      {/*
+        One loading state for the whole search. The user is never told which
+        provider is being tried, or that a fallback happened at all.
+      */}
       {playback.isPending ? (
-        <LoadingState label="Preparing player" />
+        <LoadingState label="Loading episode" />
       ) : playback.error || !playback.data ? (
-        <ErrorState error={playback.error} onRetry={() => void playback.refetch()} />
+        <PlaybackError onRetry={() => void playback.refetch()} />
       ) : (
-        <PlaybackSurface target={playback.data} anime={anime.data} episode={episode!} />
+        <PlaybackSurface
+          target={playback.data}
+          anime={anime.data}
+          episode={episode!}
+          onProviderFailed={reportFailure}
+        />
       )}
     </View>
   );
@@ -87,17 +104,39 @@ function episodeLabel(episode: Episode | undefined, fallbackNumber: number): str
   return episode?.title ? `Episode ${number}, ${episode.title}` : `Episode ${number}`;
 }
 
+/** Plain, provider-neutral failure copy. No internal codes reach the user. */
+function PlaybackError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View style={styles.error}>
+      <Text variant="subtitle" style={styles.errorTitle}>
+        Unable to load this episode.
+      </Text>
+      <Text variant="body" tone="muted" style={styles.errorDetail}>
+        Please try again.
+      </Text>
+      <Button label="Try again" variant="secondary" onPress={onRetry} style={styles.errorAction} />
+    </View>
+  );
+}
+
 function PlaybackSurface({
   target,
   anime,
   episode,
+  onProviderFailed,
 }: {
   target: PlaybackTarget;
   anime: Anime;
   episode: Episode;
+  onProviderFailed: (providerId: string) => void;
 }) {
   return target.kind === 'embed' ? (
-    <EmbedPlayer target={target} anime={anime} episode={episode} />
+    <EmbedPlayer
+      target={target}
+      anime={anime}
+      episode={episode}
+      onProviderFailed={onProviderFailed}
+    />
   ) : (
     <NativePlayer target={target} />
   );
@@ -114,14 +153,23 @@ function EmbedPlayer({
   target,
   anime,
   episode,
+  onProviderFailed,
 }: {
   target: Extract<PlaybackTarget, { kind: 'embed' }>;
   anime: Anime;
   episode: Episode;
+  onProviderFailed: (providerId: string) => void;
 }) {
   const existing = useWatchProgress(anime.id);
   const saveProgress = useSaveWatchProgress();
   const lastWrite = useRef(0);
+
+  // The runtime that hosts this provider's embed: its bridge script and its
+  // progress parser. Looked up by id so the screen never names a provider.
+  const runtime = useMemo(
+    () => getStreamProvider().runtimeFor(target.provider),
+    [target.provider]
+  );
 
   /**
    * Resume URL, computed once.
@@ -133,54 +181,45 @@ function EmbedPlayer({
   const source = useMemo(() => {
     const saved = existing.data;
     const resumable =
-      saved && saved.episodeNumber === episode.number && saved.positionSeconds > 5
-        ? saved.positionSeconds
-        : 0;
+      saved && saved.episodeNumber === episode.number ? saved.positionSeconds : 0;
 
-    if (resumable === 0) return target.url;
-    const separator = target.url.includes('?') ? '&' : '?';
-    return `${target.url}${separator}progress=${Math.floor(resumable)}`;
+    // Each player names its resume parameter differently, so the runtime is
+    // asked rather than assumed.
+    return withResume(target.url, runtime, resumable);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target.url, existing.isPending]);
+  }, [target.url, runtime, existing.isPending]);
 
   /**
-   * Playback events from the player.
+   * Playback events from whichever player is hosting this episode.
    *
-   * This is what makes Continue Watching reflect what was actually watched
-   * rather than what was merely opened.
+   * The runtime does the provider-specific parsing, so this screen sees one
+   * progress shape regardless of who is playing. That is what keeps a single
+   * watch-progress system rather than one per provider.
    */
   const handleMessage = useCallback(
     (event: WebViewMessageEvent) => {
-      const playerEvent = parseVidKingEvent(event.nativeEvent.data);
-      if (!playerEvent) return;
+      const progress = runtime?.parseProgress(event.nativeEvent.data);
+      if (!progress) return;
 
       const now = Date.now();
-      const isCheckpoint =
-        playerEvent.event === 'pause' ||
-        playerEvent.event === 'ended' ||
-        playerEvent.event === 'seeked';
-
-      // Checkpoints always persist; ticks are throttled.
-      if (!isCheckpoint && now - lastWrite.current < PROGRESS_WRITE_INTERVAL_MS) return;
+      // Checkpoints (pause, seek, completion) persist at once; ticks throttle.
+      if (!progress.checkpoint && now - lastWrite.current < PROGRESS_WRITE_INTERVAL_MS) {
+        return;
+      }
       lastWrite.current = now;
-
-      // On 'ended' the reported position can lag the true end; pinning it to
-      // the duration is what lets the title drop off Continue Watching.
-      const positionSeconds =
-        playerEvent.event === 'ended' && playerEvent.duration > 0
-          ? playerEvent.duration
-          : playerEvent.currentTime;
 
       saveProgress.mutate({
         animeId: anime.id,
-        episodeNumber: playerEvent.episode ?? episode.number,
-        positionSeconds: Math.floor(positionSeconds),
-        durationSeconds: playerEvent.duration > 0 ? Math.floor(playerEvent.duration) : undefined,
+        episodeNumber: progress.episodeNumber ?? episode.number,
+        positionSeconds: Math.floor(progress.positionSeconds),
+        durationSeconds: progress.durationSeconds
+          ? Math.floor(progress.durationSeconds)
+          : undefined,
         title: anime.title,
         image: anime.artwork,
       });
     },
-    [anime, episode.number, saveProgress]
+    [anime, episode.number, saveProgress, runtime]
   );
 
   // Wait for saved progress before mounting, so the resume offset is applied on
@@ -196,9 +235,22 @@ function EmbedPlayer({
         }}
         style={styles.webview}
         containerStyle={styles.webviewContainer}
-        // Forwards the player's postMessage events into React Native.
-        injectedJavaScript={VIDKING_EVENT_BRIDGE}
+        // Forwards this provider's postMessage events into React Native.
+        injectedJavaScript={runtime?.bridge}
         onMessage={handleMessage}
+        /*
+         * A player that cannot serve the episode navigates to the sentinel it
+         * was given. Observing that is how the app learns to try the next
+         * provider; nothing is cancelled or rewritten here.
+         */
+        onNavigationStateChange={(state) => {
+          if (isPlaybackFailureSentinel(state.url)) onProviderFailed(target.provider);
+        }}
+        // A page that fails outright counts as the same failure.
+        onError={() => onProviderFailed(target.provider)}
+        onHttpError={({ nativeEvent }) => {
+          if (nativeEvent.statusCode >= 400) onProviderFailed(target.provider);
+        }}
         allowsFullscreenVideo
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
@@ -254,6 +306,16 @@ const styles = StyleSheet.create({
   headerButton: { minHeight: touchTarget, justifyContent: 'center', paddingRight: space.lg },
   headerText: { flex: 1 },
   surface: { flex: 1, backgroundColor: color.immersive },
+  error: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: gutter,
+    backgroundColor: color.bg,
+  },
+  errorTitle: { textAlign: 'center' },
+  errorDetail: { textAlign: 'center', marginTop: space.sm },
+  errorAction: { marginTop: space.xl },
   video: { flex: 1 },
   webview: { flex: 1, backgroundColor: color.immersive },
   webviewContainer: { backgroundColor: color.immersive },

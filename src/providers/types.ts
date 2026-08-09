@@ -126,9 +126,17 @@ export interface MangaProvider extends ProviderInfo {
  */
 export type PlaybackTarget =
   /** A direct manifest playable natively with expo-video. */
-  | { kind: 'direct'; url: string; mimeType?: string; subtitles?: SubtitleTrack[]; headers?: Record<string, string> }
+  | {
+      kind: 'direct';
+      /** Which provider produced this. The player uses it to pick a runtime. */
+      provider: string;
+      url: string;
+      mimeType?: string;
+      subtitles?: SubtitleTrack[];
+      headers?: Record<string, string>;
+    }
   /** A player page rendered in a contained WebView. */
-  | { kind: 'embed'; url: string; referer?: string };
+  | { kind: 'embed'; provider: string; url: string; referer?: string };
 
 export interface SubtitleTrack {
   url: string;

@@ -99,24 +99,12 @@ describe('VidKingProvider', () => {
     ).rejects.toMatchObject({ kind: 'notFound' });
   });
 
-  describe('withResume', () => {
-    const provider = new VidKingProvider(stubMapping(undefined));
-
-    it('appends the resume position', () => {
-      expect(provider.withResume('https://x/embed/tv/1/1/1?color=a', 620)).toBe(
-        'https://x/embed/tv/1/1/1?color=a&progress=620'
-      );
-    });
-
-    it('starts a fresh query string when there is none', () => {
-      expect(provider.withResume('https://x/embed/movie/1', 90)).toBe(
-        'https://x/embed/movie/1?progress=90'
-      );
-    });
-
-    it('ignores a trivial position so a restart is not treated as a resume', () => {
-      expect(provider.withResume('https://x/e', 3)).toBe('https://x/e');
-    });
+  it('tags the target with its provider so the screen can pick a runtime', async () => {
+    const provider = new VidKingProvider(
+      stubMapping({ tmdbId: 1429, season: 1, isMovie: false })
+    );
+    const target = await provider.resolve(anime, episode);
+    expect(target.provider).toBe('vidking');
   });
 });
 
