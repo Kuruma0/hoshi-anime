@@ -12,7 +12,7 @@ import { usePlaybackTarget } from '@/data/playback';
 import { Text } from '@/design/Text';
 import { color, gutter, hairline, space, touchTarget } from '@/design/tokens';
 import type { Anime, Episode } from '@/domain/anime';
-import { parseVidKingEvent, VIDKING_EVENT_BRIDGE } from '@/providers/stream';
+import { createNavigationPolicy, parseVidKingEvent, VIDKING_EVENT_BRIDGE } from '@/providers/stream';
 import type { PlaybackTarget } from '@/providers/types';
 
 /**
@@ -123,6 +123,13 @@ function EmbedPlayer({
   const saveProgress = useSaveWatchProgress();
   const lastWrite = useRef(0);
 
+  // Derived from the URL actually being loaded, so a provider domain change
+  // cannot leave the policy blocking the player's own page.
+  const navigationPolicy = useMemo(
+    () => createNavigationPolicy(target.url),
+    [target.url]
+  );
+
   /**
    * Resume URL, computed once.
    *
@@ -202,15 +209,29 @@ function EmbedPlayer({
         allowsFullscreenVideo
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
-        // The player should play the requested episode, not navigate elsewhere.
+        /*
+         * Interruption control. The policy cancels any attempt to navigate the
+         * player away from its own site, which is what an ad redirect does;
+         * playback carries on underneath. See providers/stream/playbackPolicy
+         * for what this can and cannot reach.
+         */
+        onShouldStartLoadWithRequest={(request) =>
+          navigationPolicy.allow({ url: request.url, isTopFrame: request.isTopFrame })
+        }
+        // Popups and new windows are refused outright — there is nothing in a
+        // player that legitimately needs one.
         setSupportMultipleWindows={false}
         javaScriptCanOpenWindowsAutomatically={false}
+        onOpenWindow={NOOP}
         startInLoadingState
         renderLoading={() => <LoadingState label="Loading player" />}
       />
     </View>
   );
 }
+
+/** Swallows window-open attempts without opening anything. */
+const NOOP = () => {};
 
 /* ------------------------------------------------------------------ */
 /* direct — native playback                                            */

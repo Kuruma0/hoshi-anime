@@ -157,9 +157,16 @@ images, the relationship graph, and error mapping.
 
 ## Known limitations
 
-- **Player advertisements.** VidKing's embed exposes no ad-related parameter,
-  and blocking them would mean interfering with a third-party player's content.
-  Not attempted — see the note in `src/providers/stream/vidking.ts`.
+- **Player advertisements.** The embed exposes five documented parameters
+  (`color`, `autoPlay`, `nextEpisode`, `episodeSelector`, `progress`) and none
+  of them relate to advertising. Ads arrive as third-party scripts and XHR from
+  ad-exchange hosts, and react-native-webview offers no supported hook to cancel
+  an individual subresource — so those requests cannot be filtered without
+  native code. What *is* controlled is navigation: `playbackPolicy.ts` cancels
+  any attempt to take the player off its own site and refuses popups, which
+  removes the redirect and popup interruptions. Non-interruptive in-page ads
+  remain. Blocking by hostname was rejected on evidence: one of the HLS segment
+  CDNs sits on a `.top` domain and a TLD heuristic would have killed playback.
 - **Episode lists are generated.** AniList publishes a total count plus a
   partial `streamingEpisodes` array, not a canonical per-episode endpoint.
   Episodes are built from the count and enriched where a streaming entry matches
