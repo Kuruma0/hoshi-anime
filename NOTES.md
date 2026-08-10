@@ -65,6 +65,42 @@ outside that region.
 - **Manga downloads are possible.** `/at-home/server/{id}` returns plain image
   URLs; a normal GET returns `image/png`. Nothing special is needed.
 
+### Direct episode download, investigated and rejected
+Re-checked against the live player rather than assumed. `GET` on
+`/embed/tv/1429/1/1` returns 4 KB of `text/html` containing zero `.mp4`,
+`.m3u8`, `.mpd`, `<video>` or `<source>`; it is a shell that loads
+`assets/VideoPlayer-*.js`. Everything media related happens after that runs.
+
+Loading it in a browser and reading the player's own console shows what it
+resolves to:
+
+```
+Decrypted sources for Yoru: {subtitles: Array(48), sources: Array(3),
+  playlist: https://moon.ironwallnet.net/r2/cdn2/<opaque-token>/playlist.m3u8}
+Source has multiple quality options: {0: 1080p, 1: 720p, 2: 480p}
+```
+
+Three blockers, in the order they bite:
+
+1. **The source list arrives encrypted** and is decrypted by their own player
+   at runtime; their log says so in as many words. Reaching that URL from our
+   side means reimplementing or driving their decryption, which is defeating an
+   anti-download measure. Not doing it.
+2. **It is HLS, not a file.** Even given the URL, `.m3u8` is a manifest.
+   Producing something playable means fetching every segment and muxing, which
+   is a native muxer (ffmpeg, tens of MB) against a hard "do not grow the app"
+   constraint.
+3. **The path token is opaque and per-session**, so anything extracted would
+   expire and the "download" would rot.
+
+CORS never becomes the deciding question: blocker 1 sits in front of it.
+Quality selection and subtitle tracks both exist in the decrypted payload, so
+the UI side would have been easy; the source side is what makes it impossible.
+
+No Download Episode button was added. A control that can never succeed for any
+title is worse than its absence, and the offline library and Settings already
+say plainly that anime cannot be saved.
+
 ### VidLink is DISABLED
 Kept in the tree, absent from registry.ts. See providers/stream/vidlink.ts for
 why and how to re-enable. Do not wire it back in without checking it resolves.

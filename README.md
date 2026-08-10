@@ -183,6 +183,15 @@ there is nothing to save. Rather than ship a download button that stores a URL
 which stops working the moment you lose signal, the offline library says so
 directly.
 
+A direct "Download Episode" action was investigated against the live player and
+rejected on evidence. The embed URL returns a 4 KB HTML shell with no media
+reference of any kind; the player then resolves an **encrypted** source list at
+runtime and decrypts it itself, yielding a tokenized HLS playlist with 1080p,
+720p and 480p variants. Reaching that URL would mean defeating the encryption,
+which this project does not do. Even past it, HLS is a manifest rather than a
+file, so a playable download would need a bundled muxer, against the constraint
+that the app stay small. `NOTES.md` records the exact evidence.
+
 Downloads live in their own AsyncStorage index and their own directory,
 separate from the query cache, so clearing cached metadata never deletes
 something the user chose to keep. Pages are fetched sequentially, and a failed
@@ -193,6 +202,51 @@ root. Query pauses rather than retries while offline, which is what actually
 stops the app reissuing requests that cannot succeed, and paused queries resume
 on their own when the connection returns. The reader checks for a local copy
 first and skips the network entirely when it finds one.
+
+---
+
+## Recommendations
+
+**Deterministic and rule based. There is no machine learning and no model.**
+Every number is hand chosen, every result is traceable to its inputs, and
+nothing leaves the device. The engine is `src/lib/recommend.ts`, which is pure;
+`src/data/recommendations.ts` owns fetching and caching.
+
+```
+activity      saved list, watch progress (nothing else is collected)
+   |
+signals       completed 1.0 | watching 0.6 | saved 0.5 | abandoned -0.35
+   |          each multiplied by recency, half life 120 days
+profile       weighted genre and studio affinity, normalised to 1
+   |          plus a quality baseline and an era centre
+candidates    trending + popular + top rated + airing, already cached
+   |
+score         0.50 genre + 0.20 studio + 0.15 quality + 0.10 era
+   |          + 0.05 popularity   (sums to 1)
+filter        drop saved, completed and abandoned; keep in-progress
+   |
+diversify     greedy re-rank, 0.35 penalty per repeated genre,
+   |          hard cap of 2 titles per studio
+explain       reason taken from the highest weighted component
+```
+
+A few decisions worth stating outright:
+
+- **There is no rating weight**, because the app has no per-title user rating
+  for anime. Documenting one would describe code that does not exist.
+- **Negative signals are deliberately weak.** Abandoning counts as `-0.35`
+  against a completion's `1.0`, so one dropped show nudges a genre rather than
+  vetoing it. People drop things for reasons unrelated to taste.
+- **Quality is measured against the viewer's own baseline**, not in absolute
+  terms, so broad taste is not narrowed to the top hundred.
+- **Popularity is last and smallest.** Give it real weight and every list
+  collapses into the same famous shows for everybody.
+- **Cold start is not an error state.** Under two positive signals the row
+  becomes an interleaved blend of trending, popular, top rated and this season,
+  labelled as exactly that instead of dressed up as personal.
+
+`ScoreBreakdown` carries every component through to the result, so any ranking
+can be inspected rather than taken on trust.
 
 ---
 
@@ -212,9 +266,10 @@ that file on purpose.
 
 ## Testing
 
-`npm test`, **231 unit tests**, no network. Response normalization,
+`npm test`, **259 unit tests**, no network. Response normalization,
 cross-language title matching, chapter ordering, timezone bucketing, rating
-normalization, contrast maths, episode range chunking, recommendation scoring,
+normalization, contrast maths, episode range chunking, the whole recommendation
+pipeline (signal weighting, recency decay, scoring, diversity, cold start),
 offline grouping and size formatting, and embed URL building and event parsing
 for both players.
 
@@ -249,6 +304,9 @@ because `npm test` must never fail because a provider is down.
 - **Chapter lists can contain duplicates**, because several scanlation groups
   publish the same chapter. That is real MangaDex data; the group is shown so
   you can choose.
+- **Episodes cannot be downloaded as files.** See Offline above: the player
+  decrypts its source list at runtime and serves tokenized HLS, so there is no
+  downloadable file to hand to the OS.
 - **Source ratings and recommendations are local.** With no account system there
   is no community average, and inventing one would be fabricating data.
 

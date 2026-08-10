@@ -2,11 +2,21 @@ import { describe, expect, it } from 'vitest';
 import type { Anime } from '@/domain/anime';
 import {
   buildTasteProfile,
+  diversify,
   eraSimilarity,
+  explain,
+  interleave,
+  isProfileUsable,
+  profileAffinity,
   rankBySimilarity,
   rankByTaste,
-  similarityScore,
+  recencyWeight,
+  scoreAgainstProfile,
+  scoreAgainstSeed,
   tagSimilarity,
+  WEIGHTS,
+  type ScoredAnime,
+  type TasteSignal,
 } from './recommend';
 
 function anime(overrides: Partial<Anime> & { id: string }): Anime {
@@ -21,12 +31,30 @@ function anime(overrides: Partial<Anime> & { id: string }): Anime {
   };
 }
 
+const NOW = Date.UTC(2026, 0, 1);
+const DAY = 24 * 60 * 60 * 1000;
+
 const seed = anime({
   id: 'seed',
   genres: ['Action', 'Drama', 'Fantasy'],
   studios: ['Wit Studio'],
   year: 2013,
   score: 85,
+});
+
+function signal(overrides: Partial<TasteSignal> & { anime: Anime }): TasteSignal {
+  return { kind: 'completed', updatedAt: NOW, ...overrides };
+}
+
+function scoredOf(items: readonly ScoredAnime[]): string[] {
+  return items.map((entry) => entry.anime.id);
+}
+
+describe('weights', () => {
+  it('sum to exactly 1, so a perfect match scores 1', () => {
+    const total = Object.values(WEIGHTS).reduce((sum, value) => sum + value, 0);
+    expect(total).toBeCloseTo(1, 10);
+  });
 });
 
 describe('tagSimilarity', () => {
@@ -39,159 +67,446 @@ describe('tagSimilarity', () => {
     expect(tagSimilarity(['Action'], ['action'])).toBe(1);
   });
 
-  it('does not reward a title simply for carrying more tags', () => {
-    // Jaccard, not raw overlap: a twelve genre title should not outrank a
-    // focused match just by having more chances to intersect.
+  it('is 0 when either side is empty', () => {
+    expect(tagSimilarity([], ['Action'])).toBe(0);
+    expect(tagSimilarity(['Action'], [])).toBe(0);
+  });
+
+  it('does not reward a title for carrying many tags', () => {
     const focused = tagSimilarity(['Action', 'Drama'], ['Action', 'Drama']);
-    const bloated = tagSimilarity(
+    const broad = tagSimilarity(
       ['Action', 'Drama'],
       ['Action', 'Drama', 'Comedy', 'Sports', 'Music', 'Horror']
     );
-    expect(focused).toBeGreaterThan(bloated);
-  });
-
-  it('returns 0 when either side is empty', () => {
-    expect(tagSimilarity([], ['Action'])).toBe(0);
-    expect(tagSimilarity(['Action'], [])).toBe(0);
+    expect(focused).toBeGreaterThan(broad);
   });
 });
 
 describe('eraSimilarity', () => {
-  it('is 1 for the same year and decays with distance', () => {
+  it('is 1 for the same year and 0 a decade apart', () => {
     expect(eraSimilarity(2013, 2013)).toBe(1);
-    expect(eraSimilarity(2013, 2018)).toBeCloseTo(0.5, 5);
+    expect(eraSimilarity(2013, 2023)).toBe(0);
   });
 
-  it('bottoms out rather than going negative', () => {
-    expect(eraSimilarity(2000, 2030)).toBe(0);
+  it('never goes negative', () => {
+    expect(eraSimilarity(1990, 2025)).toBe(0);
   });
 
-  it('returns 0 when a year is unknown', () => {
+  it('is 0 when a year is unknown', () => {
     expect(eraSimilarity(undefined, 2013)).toBe(0);
   });
 });
 
-describe('similarityScore', () => {
-  it('scores a close match above a distant one', () => {
-    const close = anime({
-      id: 'close',
-      genres: ['Action', 'Drama', 'Fantasy'],
-      studios: ['Wit Studio'],
-      year: 2014,
-      score: 82,
-    });
-    const distant = anime({
-      id: 'distant',
-      genres: ['Comedy', 'Slice of Life'],
-      studios: ['Other'],
-      year: 1998,
-      score: 70,
-    });
-
-    expect(similarityScore(seed, close)).toBeGreaterThan(similarityScore(seed, distant));
+describe('recencyWeight', () => {
+  it('is 1 now and one half at the half life', () => {
+    expect(recencyWeight(NOW, NOW)).toBe(1);
+    expect(recencyWeight(NOW - 120 * DAY, NOW)).toBeCloseTo(0.5, 6);
   });
 
-  it('stays within 0 and 1', () => {
-    const perfect = anime({ ...seed, id: 'perfect' });
-    expect(similarityScore(seed, perfect)).toBeLessThanOrEqual(1);
-    expect(similarityScore(seed, anime({ id: 'empty' }))).toBeGreaterThanOrEqual(0);
+  it('decays but never reaches zero', () => {
+    const old = recencyWeight(NOW - 1000 * DAY, NOW);
+    expect(old).toBeGreaterThan(0);
+    expect(old).toBeLessThan(0.01);
   });
 
-  it('does not let popularity stand in for similarity', () => {
-    // A wildly popular but unrelated title must not beat a genuine match.
-    const popularUnrelated = anime({
-      id: 'popular',
-      genres: ['Comedy'],
-      studios: ['Other'],
-      year: 2020,
-      score: 99,
-    });
-    const relatedAverage = anime({
-      id: 'related',
-      genres: ['Action', 'Drama', 'Fantasy'],
-      studios: ['Wit Studio'],
-      year: 2013,
-      score: 60,
-    });
-
-    expect(similarityScore(seed, relatedAverage)).toBeGreaterThan(
-      similarityScore(seed, popularUnrelated)
-    );
-  });
-});
-
-describe('rankBySimilarity', () => {
-  const candidates = [
-    anime({ id: 'a', genres: ['Action', 'Drama'], studios: ['Wit Studio'], year: 2013 }),
-    anime({ id: 'b', genres: ['Comedy'], year: 1995 }),
-    anime({ id: 'c', genres: ['Action', 'Fantasy'], year: 2015 }),
-  ];
-
-  it('ranks the closest candidate first', () => {
-    expect(rankBySimilarity(seed, candidates)[0]?.id).toBe('a');
-  });
-
-  it('never recommends the seed back', () => {
-    const withSeed = [...candidates, seed];
-    expect(rankBySimilarity(seed, withSeed).some((item) => item.id === 'seed')).toBe(false);
-  });
-
-  it('excludes titles the viewer already has', () => {
-    const ranked = rankBySimilarity(seed, candidates, { exclude: new Set(['a']) });
-    expect(ranked.some((item) => item.id === 'a')).toBe(false);
-  });
-
-  it('drops weak matches rather than padding the list', () => {
-    // A short honest list beats a long one whose tail is unrelated.
-    const ranked = rankBySimilarity(seed, candidates, { threshold: 0.3 });
-    expect(ranked.every((item) => item.id !== 'b')).toBe(true);
-  });
-
-  it('respects the limit', () => {
-    expect(rankBySimilarity(seed, candidates, { limit: 1, threshold: 0 })).toHaveLength(1);
-  });
-
-  it('returns nothing when there are no candidates', () => {
-    expect(rankBySimilarity(seed, [])).toEqual([]);
+  it('does not exceed 1 for a future timestamp', () => {
+    expect(recencyWeight(NOW + 10 * DAY, NOW)).toBe(1);
   });
 });
 
 describe('buildTasteProfile', () => {
-  it('surfaces the most frequent genres and studios', () => {
-    const profile = buildTasteProfile([
-      anime({ id: '1', genres: ['Action', 'Drama'], studios: ['Bones'] }),
-      anime({ id: '2', genres: ['Action', 'Comedy'], studios: ['Bones'] }),
-      anime({ id: '3', genres: ['Action'], studios: ['Madhouse'] }),
-    ]);
+  it('normalises the strongest genre to 1', () => {
+    const profile = buildTasteProfile(
+      [
+        signal({ anime: anime({ id: 'a', genres: ['Action', 'Drama'] }) }),
+        signal({ anime: anime({ id: 'b', genres: ['Action'] }) }),
+      ],
+      NOW
+    );
 
-    expect(profile.genres[0]).toBe('Action');
-    expect(profile.studios[0]).toBe('Bones');
+    expect(profile.genres.get('action')).toBe(1);
+    expect(profile.genres.get('drama')).toBeLessThan(1);
   });
 
-  it('is empty for a viewer with no history', () => {
-    expect(buildTasteProfile([])).toEqual({ genres: [], studios: [] });
+  it('weights a completed title above a saved one', () => {
+    const completed = buildTasteProfile(
+      [signal({ anime: anime({ id: 'a', genres: ['Action'] }), kind: 'completed' })],
+      NOW
+    );
+    const saved = buildTasteProfile(
+      [signal({ anime: anime({ id: 'a', genres: ['Action'] }), kind: 'saved' })],
+      NOW
+    );
+
+    // Both normalise to 1 alone, so compare against a shared competing genre.
+    const mixedCompleted = buildTasteProfile(
+      [
+        signal({ anime: anime({ id: 'a', genres: ['Action'] }), kind: 'completed' }),
+        signal({ anime: anime({ id: 'b', genres: ['Comedy'] }), kind: 'saved' }),
+      ],
+      NOW
+    );
+
+    expect(completed.genres.get('action')).toBe(1);
+    expect(saved.genres.get('action')).toBe(1);
+    expect(mixedCompleted.genres.get('comedy')!).toBeLessThan(
+      mixedCompleted.genres.get('action')!
+    );
+  });
+
+  it('lets an abandoned genre fall away', () => {
+    const profile = buildTasteProfile(
+      [
+        signal({ anime: anime({ id: 'a', genres: ['Action'] }), kind: 'completed' }),
+        signal({ anime: anime({ id: 'b', genres: ['Ecchi'] }), kind: 'abandoned' }),
+      ],
+      NOW
+    );
+
+    expect(profile.genres.get('action')).toBe(1);
+    expect(profile.genres.has('ecchi')).toBe(false);
+  });
+
+  it('does not let one abandoned title veto a genre the viewer watches', () => {
+    const profile = buildTasteProfile(
+      [
+        signal({ anime: anime({ id: 'a', genres: ['Action'] }), kind: 'completed' }),
+        signal({ anime: anime({ id: 'b', genres: ['Action'] }), kind: 'completed' }),
+        signal({ anime: anime({ id: 'c', genres: ['Action'] }), kind: 'abandoned' }),
+      ],
+      NOW
+    );
+
+    expect(profile.genres.get('action')).toBe(1);
+  });
+
+  it('discounts old activity relative to recent activity', () => {
+    const profile = buildTasteProfile(
+      [
+        signal({ anime: anime({ id: 'old', genres: ['Mecha'] }), updatedAt: NOW - 480 * DAY }),
+        signal({ anime: anime({ id: 'new', genres: ['Slice of Life'] }), updatedAt: NOW }),
+      ],
+      NOW
+    );
+
+    expect(profile.genres.get('slice of life')).toBe(1);
+    expect(profile.genres.get('mecha')!).toBeLessThan(0.2);
+  });
+
+  it('excludes abandoned titles from the quality baseline', () => {
+    const profile = buildTasteProfile(
+      [
+        signal({ anime: anime({ id: 'a', genres: ['Action'], score: 90 }), kind: 'completed' }),
+        signal({ anime: anime({ id: 'b', genres: ['Action'], score: 30 }), kind: 'abandoned' }),
+      ],
+      NOW
+    );
+
+    expect(profile.qualityBaseline).toBeCloseTo(0.9, 6);
+  });
+
+  it('counts only positive signals towards the sample size', () => {
+    const profile = buildTasteProfile(
+      [
+        signal({ anime: anime({ id: 'a', genres: ['Action'] }), kind: 'completed' }),
+        signal({ anime: anime({ id: 'b', genres: ['Ecchi'] }), kind: 'abandoned' }),
+      ],
+      NOW
+    );
+
+    expect(profile.sampleSize).toBe(1);
+  });
+
+  it('produces an unusable profile from nothing', () => {
+    const profile = buildTasteProfile([], NOW);
+    expect(profile.genres.size).toBe(0);
+    expect(isProfileUsable(profile)).toBe(false);
+  });
+
+  it('treats a single title as too thin to personalise from', () => {
+    const profile = buildTasteProfile(
+      [signal({ anime: anime({ id: 'a', genres: ['Action'] }) })],
+      NOW
+    );
+    expect(isProfileUsable(profile)).toBe(false);
+  });
+});
+
+describe('profileAffinity', () => {
+  it('rewards matching a strongly preferred tag over a weak one', () => {
+    const profile = new Map([
+      ['action', 1],
+      ['comedy', 0.2],
+    ]);
+
+    expect(profileAffinity(profile, ['Action'])).toBeGreaterThan(
+      profileAffinity(profile, ['Comedy'])
+    );
+  });
+
+  it('does not reward padding a title with unmatched tags', () => {
+    const profile = new Map([['action', 1]]);
+
+    expect(profileAffinity(profile, ['Action'])).toBeGreaterThan(
+      profileAffinity(profile, ['Action', 'Horror', 'Sports', 'Music'])
+    );
+  });
+
+  it('is 0 against an empty profile', () => {
+    expect(profileAffinity(new Map(), ['Action'])).toBe(0);
+  });
+});
+
+describe('scoreAgainstProfile', () => {
+  const profile = buildTasteProfile(
+    [
+      signal({ anime: anime({ id: 'a', genres: ['Action'], studios: ['Wit Studio'], year: 2013, score: 85 }) }),
+      signal({ anime: anime({ id: 'b', genres: ['Action'], studios: ['Wit Studio'], year: 2014, score: 85 }) }),
+    ],
+    NOW
+  );
+
+  it('scores a close match above an unrelated one', () => {
+    const near = scoreAgainstProfile(
+      profile,
+      anime({ id: 'near', genres: ['Action'], studios: ['Wit Studio'], year: 2013, score: 85 })
+    );
+    const far = scoreAgainstProfile(
+      profile,
+      anime({ id: 'far', genres: ['Sports'], studios: ['Other'], year: 1999, score: 60 })
+    );
+
+    expect(near.total).toBeGreaterThan(far.total);
+  });
+
+  it('reports every component, and a total equal to their weighted sum', () => {
+    const breakdown = scoreAgainstProfile(
+      profile,
+      anime({ id: 'x', genres: ['Action'], studios: ['Wit Studio'], year: 2013, score: 85 })
+    );
+
+    const recomputed =
+      breakdown.genre * WEIGHTS.genre +
+      breakdown.studio * WEIGHTS.studio +
+      breakdown.quality * WEIGHTS.quality +
+      breakdown.era * WEIGHTS.era +
+      breakdown.popularity * WEIGHTS.popularity;
+
+    expect(breakdown.total).toBeCloseTo(recomputed, 10);
+  });
+
+  it('does not punish a candidate rated above the viewer baseline', () => {
+    const better = scoreAgainstProfile(profile, anime({ id: 'better', score: 95 }));
+    expect(better.quality).toBe(1);
+  });
+
+  it('keeps every component within 0..1', () => {
+    const breakdown = scoreAgainstProfile(
+      profile,
+      anime({ id: 'x', genres: ['Action'], studios: ['Wit Studio'], year: 2013, score: 10 })
+    );
+
+    for (const value of Object.values(breakdown)) {
+      expect(value).toBeGreaterThanOrEqual(0);
+      expect(value).toBeLessThanOrEqual(1);
+    }
+  });
+});
+
+describe('scoreAgainstSeed', () => {
+  it('scores a same-studio same-genre title highest', () => {
+    const twin = scoreAgainstSeed(
+      seed,
+      anime({ id: 'twin', genres: ['Action', 'Drama', 'Fantasy'], studios: ['Wit Studio'], year: 2013, score: 85 })
+    );
+    const other = scoreAgainstSeed(seed, anime({ id: 'other', genres: ['Comedy'], year: 2005 }));
+
+    expect(twin.total).toBeGreaterThan(other.total);
   });
 });
 
 describe('rankByTaste', () => {
-  const candidates = [
-    anime({ id: 'match', genres: ['Action', 'Drama'], studios: ['Bones'], score: 80 }),
-    anime({ id: 'other', genres: ['Sports'], score: 80 }),
+  const profile = buildTasteProfile(
+    [
+      signal({ anime: anime({ id: 'a', genres: ['Action', 'Fantasy'], score: 85 }) }),
+      signal({ anime: anime({ id: 'b', genres: ['Action', 'Fantasy'], score: 85 }) }),
+    ],
+    NOW
+  );
+
+  const pool = [
+    anime({ id: 'match', genres: ['Action', 'Fantasy'], score: 88 }),
+    anime({ id: 'partial', genres: ['Action', 'Comedy'], score: 70 }),
+    anime({ id: 'unrelated', genres: ['Sports'], score: 40 }),
   ];
 
-  it('ranks titles matching the profile first', () => {
-    const profile = { genres: ['Action', 'Drama'], studios: ['Bones'] };
-    expect(rankByTaste(profile, candidates)[0]?.id).toBe('match');
+  it('ranks the closest match first', () => {
+    expect(scoredOf(rankByTaste(profile, pool))[0]).toBe('match');
   });
 
-  it('returns nothing for an empty profile, so the caller can fall back', () => {
-    // Cold start is the caller's job to handle with trending, not ours to fake.
-    expect(rankByTaste({ genres: [], studios: [] }, candidates)).toEqual([]);
+  it('excludes ids the viewer already has', () => {
+    const result = rankByTaste(profile, pool, { exclude: new Set(['match']) });
+    expect(scoredOf(result)).not.toContain('match');
   });
 
-  it('excludes titles already in the library', () => {
-    const profile = { genres: ['Action'], studios: [] };
-    const ranked = rankByTaste(profile, candidates, { exclude: new Set(['match']) });
-    expect(ranked.some((item) => item.id === 'match')).toBe(false);
+  it('drops candidates below the threshold rather than padding', () => {
+    const result = rankByTaste(profile, pool, { threshold: 0.5 });
+    expect(result.length).toBeLessThan(pool.length);
+  });
+
+  it('returns nothing for an unusable profile, so the caller can fall back', () => {
+    expect(rankByTaste(buildTasteProfile([], NOW), pool)).toEqual([]);
+  });
+
+  it('attaches a reason to every result', () => {
+    for (const entry of rankByTaste(profile, pool)) {
+      expect(entry.reason.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('respects the limit', () => {
+    expect(rankByTaste(profile, pool, { limit: 1 })).toHaveLength(1);
+  });
+});
+
+describe('rankBySimilarity', () => {
+  const pool = [
+    anime({ id: 'close', genres: ['Action', 'Drama', 'Fantasy'], studios: ['Wit Studio'], year: 2013, score: 84 }),
+    anime({ id: 'loose', genres: ['Action'], year: 2016, score: 70 }),
+    anime({ id: 'unrelated', genres: ['Sports'], year: 1998, score: 55 }),
+  ];
+
+  it('ranks the closest title first', () => {
+    expect(scoredOf(rankBySimilarity(seed, pool))[0]).toBe('close');
+  });
+
+  it('never returns the seed itself', () => {
+    expect(scoredOf(rankBySimilarity(seed, [seed, ...pool]))).not.toContain('seed');
+  });
+
+  it('names the shared genres in the reason', () => {
+    const [top] = rankBySimilarity(seed, pool);
+    expect(top!.reason).toContain(seed.title);
+  });
+});
+
+describe('diversify', () => {
+  it('breaks up a run of near-identical titles', () => {
+    const scored: ScoredAnime[] = [
+      { anime: anime({ id: 'a1', genres: ['Action'] }), score: 0.9, breakdown: null as never, reason: '' },
+      { anime: anime({ id: 'a2', genres: ['Action'] }), score: 0.89, breakdown: null as never, reason: '' },
+      { anime: anime({ id: 'a3', genres: ['Action'] }), score: 0.88, breakdown: null as never, reason: '' },
+      { anime: anime({ id: 'c1', genres: ['Comedy'] }), score: 0.7, breakdown: null as never, reason: '' },
+    ];
+
+    const picked = diversify(scored, 2);
+    expect(picked[0]!.anime.id).toBe('a1');
+    // The comedy title is worse on score but adds something the row lacks.
+    expect(picked[1]!.anime.id).toBe('c1');
+  });
+
+  it('caps how many titles one studio can take', () => {
+    const scored: ScoredAnime[] = ['s1', 's2', 's3', 's4'].map((id, index) => ({
+      anime: anime({ id, genres: ['Action'], studios: ['Kyoto Animation'] }),
+      score: 0.9 - index * 0.01,
+      breakdown: null as never,
+      reason: '',
+    }));
+
+    expect(diversify(scored, 4)).toHaveLength(2);
+  });
+
+  it('keeps the best title first', () => {
+    const scored: ScoredAnime[] = [
+      { anime: anime({ id: 'best', genres: ['Action'] }), score: 0.95, breakdown: null as never, reason: '' },
+      { anime: anime({ id: 'other', genres: ['Comedy'] }), score: 0.5, breakdown: null as never, reason: '' },
+    ];
+
+    expect(diversify(scored, 2)[0]!.anime.id).toBe('best');
+  });
+
+  it('is deterministic for the same input', () => {
+    const scored: ScoredAnime[] = ['a', 'b', 'c'].map((id, index) => ({
+      anime: anime({ id, genres: ['Action', 'Drama'] }),
+      score: 0.8 - index * 0.1,
+      breakdown: null as never,
+      reason: '',
+    }));
+
+    expect(scoredOf(diversify(scored, 3))).toEqual(scoredOf(diversify(scored, 3)));
+  });
+
+  it('handles an empty list', () => {
+    expect(diversify([], 5)).toEqual([]);
+  });
+});
+
+describe('explain', () => {
+  const profile = buildTasteProfile(
+    [
+      signal({ anime: anime({ id: 'a', genres: ['Action', 'Dark Fantasy'], studios: ['Mappa'] }) }),
+      signal({ anime: anime({ id: 'b', genres: ['Action', 'Dark Fantasy'], studios: ['Mappa'] }) }),
+    ],
+    NOW
+  );
+
+  it('names the shared genres when genre led the score', () => {
+    const candidate = anime({ id: 'x', genres: ['Action', 'Dark Fantasy'] });
+    const reason = explain(profile, candidate, scoreAgainstProfile(profile, candidate));
+
+    expect(reason).toContain('Action');
+    expect(reason).toContain('Dark Fantasy');
+  });
+
+  it('falls back to a generic line when nothing matched', () => {
+    const candidate = anime({ id: 'x', genres: [], score: undefined });
+    const reason = explain(profile, candidate, {
+      genre: 0,
+      studio: 0,
+      quality: 0,
+      era: 0,
+      popularity: 0,
+      total: 0,
+    });
+
+    expect(reason).toBe('Popular with viewers');
+  });
+
+  it('never uses an em dash', () => {
+    const candidate = anime({ id: 'x', genres: ['Action', 'Dark Fantasy'], studios: ['Mappa'] });
+    const reason = explain(profile, candidate, scoreAgainstProfile(profile, candidate));
+
+    // Escaped rather than literal so the character itself stays out of the tree.
+    expect(reason).not.toContain('\u2014');
+  });
+});
+
+describe('interleave', () => {
+  it('takes one from each pool in turn', () => {
+    const result = interleave(
+      [
+        [anime({ id: 'a1' }), anime({ id: 'a2' })],
+        [anime({ id: 'b1' }), anime({ id: 'b2' })],
+      ],
+      4
+    );
+
+    expect(result.map((item) => item.id)).toEqual(['a1', 'b1', 'a2', 'b2']);
+  });
+
+  it('drops titles that appear in more than one pool', () => {
+    const shared = anime({ id: 'shared' });
+    const result = interleave([[shared], [shared, anime({ id: 'other' })]], 5);
+
+    expect(result.map((item) => item.id)).toEqual(['shared', 'other']);
+  });
+
+  it('respects the limit', () => {
+    expect(interleave([[anime({ id: 'a' }), anime({ id: 'b' })]], 1)).toHaveLength(1);
+  });
+
+  it('survives empty pools', () => {
+    expect(interleave([[], []], 5)).toEqual([]);
+    expect(interleave([], 5)).toEqual([]);
   });
 });

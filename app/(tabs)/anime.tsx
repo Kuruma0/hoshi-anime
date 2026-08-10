@@ -23,12 +23,15 @@ import type { AnimeSection } from '@/providers/types';
 /**
  * Anime home.
  *
- * The order is deliberate information architecture: anything already in
- * progress, then what is airing right now, then a Discover block for
- * everything else. The page answers "carry on where I was" before it answers
- * "show me something new".
+ * The order is deliberate information architecture. Continue watching sits
+ * above everything because resuming is the most common reason to open the app,
+ * and it is the only section that is not discovery. Everything after it lives
+ * under one Discover heading, so the page reads as "carry on" then "find
+ * something", rather than as an undifferentiated stack of rails.
  *
- * Discovery rails below Discover, in order.
+ * Inside Discover the order narrows from browsing to specifics: genres to pick
+ * a direction, what is airing now, then what suits you, then the evergreen
+ * rails.
  */
 const DISCOVER_SECTIONS: AnimeSection[] = ['topRated', 'popular', 'upcoming'];
 
@@ -69,6 +72,13 @@ export default function AnimeHomeScreen() {
           onSelect={(id) => router.push(routes.anime(id))}
         />
 
+        <SectionDivider title="Discover" />
+
+        <GenreRail
+          genres={genres.data ?? []}
+          onSelect={(genre) => router.push(routes.genre('anime', genre))}
+        />
+
         {supportsAiring ? (
           <AiringCarousel
             items={airing.data?.items ?? []}
@@ -80,21 +90,17 @@ export default function AnimeHomeScreen() {
         ) : null}
 
         {/*
-          Only appears once the viewer has saved something. With no history the
-          section is absent rather than filled with trending under a personal
-          heading, which would be a lie about where it came from.
+          Never empty and never blocking: the engine falls back to a blend of
+          trending, popular, top rated and this season when there is no history
+          to personalise from, and the row renders its own loading state while
+          the profile is built, so the rest of the page paints first.
         */}
         <ContentRow
           title="Recommended for you"
-          items={(recommended.data ?? []).map(toRowItem)}
+          items={(recommended.data?.items ?? []).map(toRowItem)}
+          caption={recommended.data?.reason}
+          isLoading={recommended.isPending}
           onSelect={(id) => router.push(routes.anime(id))}
-        />
-
-        <SectionDivider title="Discover" />
-
-        <GenreRail
-          genres={genres.data ?? []}
-          onSelect={(genre) => router.push(routes.genre('anime', genre))}
         />
 
         {DISCOVER_SECTIONS.map((section) => (

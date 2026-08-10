@@ -1,5 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import { StyleSheet, View } from 'react-native';
+import { Text } from '@/design/Text';
 import { aspect, gutter, posterWidth, sectionGap, space } from '@/design/tokens';
 import { PosterCard } from './PosterCard';
 import { SectionHeader } from './SectionHeader';
@@ -23,6 +24,11 @@ export interface ContentRowProps {
   onSeeAll?: () => void;
   /** Fetch the next page when the rail is scrolled near its end. */
   onEndReached?: () => void;
+  /**
+   * One line under the heading saying why this rail holds what it holds.
+   * Used by recommendations; omitted everywhere a rail is self-explanatory.
+   */
+  caption?: string;
 }
 
 const ITEM_WIDTH = posterWidth.row;
@@ -46,6 +52,7 @@ export function ContentRow({
   onRetry,
   onSeeAll,
   onEndReached,
+  caption,
 }: ContentRowProps) {
   const showState = isLoading || error || items.length === 0;
 
@@ -57,6 +64,13 @@ export function ContentRow({
         actionLabel={onSeeAll && !showState ? 'See more' : undefined}
         onAction={onSeeAll}
       />
+
+      {/* Hidden while the rail is in a state, where it would explain nothing. */}
+      {caption && !showState ? (
+        <Text variant="meta" tone="faint" style={styles.caption}>
+          {caption}
+        </Text>
+      ) : null}
 
       {showState ? (
         <InlineState
@@ -99,6 +113,8 @@ function Separator() {
 
 const styles = StyleSheet.create({
   section: { marginBottom: sectionGap },
+  // Pulls up under the header, which owns the gap below itself.
+  caption: { paddingHorizontal: gutter, marginTop: -space.xs, marginBottom: space.md },
   list: { paddingHorizontal: gutter },
   separator: { width: space.md },
 });
