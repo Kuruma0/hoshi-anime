@@ -25,9 +25,18 @@ const persister = createAsyncStoragePersister({
 export const persistOptions: Omit<PersistQueryClientOptions, 'queryClient'> = {
   persister,
   maxAge: 24 * 60 * 60 * 1000,
-  // Bump when a normalizer changes shape, so a stale cache is discarded rather
-  // than rehydrated into UI that no longer understands it.
-  buster: 'v1',
+  /*
+    Bump when a normalizer changes shape, so a stale cache is discarded rather
+    than rehydrated into UI that no longer understands it.
+
+    v2: recommendation results written before candidates were deduplicated
+    contain repeated titles. A persisted entry is rehydrated and rendered
+    without re-running its query function, so the fix in the engine could not
+    reach data already on disk, and those entries would have kept producing
+    blank slots until they aged out a day later. Bumping discards them once,
+    at the next launch.
+  */
+  buster: 'v2',
   dehydrateOptions: {
     shouldDehydrateQuery: (query) => {
       if (query.state.status !== 'success') return false;

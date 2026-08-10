@@ -180,19 +180,39 @@ export function toRowItem(anime: Anime) {
 export function toRowItems(list: readonly (Anime | undefined | null)[], source: string) {
   const seen = new Set<string>();
   const items: ReturnType<typeof toRowItem>[] = [];
-  const rejected: unknown[] = [];
+  // Keyed by reason, because a count on its own says an entry was dropped
+  // without saying what to go and fix. A repeated id points upstream at
+  // candidate pooling; a blank title points at the normalizer.
+  const rejected: { id: unknown; reason: 'missing-id' | 'blank-title' | 'duplicate-id' }[] = [];
 
   for (const anime of list) {
-    if (!anime?.id || !anime.title?.trim() || seen.has(anime.id)) {
-      rejected.push(anime?.id ?? anime);
+    if (!anime?.id) {
+      rejected.push({ id: anime, reason: 'missing-id' });
       continue;
     }
+    if (!anime.title?.trim()) {
+      rejected.push({ id: anime.id, reason: 'blank-title' });
+      continue;
+    }
+    if (seen.has(anime.id)) {
+      rejected.push({ id: anime.id, reason: 'duplicate-id' });
+      continue;
+    }
+
     seen.add(anime.id);
     items.push(toRowItem(anime));
   }
 
   if (__DEV__ && rejected.length > 0) {
-    console.warn(`[${source}] dropped ${rejected.length} unrenderable entries`, rejected);
+    const byReason: Record<string, number> = {};
+    for (const entry of rejected) {
+      byReason[entry.reason] = (byReason[entry.reason] ?? 0) + 1;
+    }
+    console.warn(
+      `[${source}] dropped ${rejected.length} unrenderable entries`,
+      byReason,
+      rejected
+    );
   }
 
   return items;
