@@ -134,6 +134,32 @@ Nothing beyond format was confirmed for the rejected three, because confirming
 it would have meant getting past the gate. Blank is honest; invented values
 would not be.
 
+**Every route was tried before concluding this.** Recorded so nobody spends a
+weekend re-running it:
+
+| Route | Result |
+|---|---|
+| `api.consumet.org` (the main community resolver) | **HTTP 451, Unavailable For Legal Reasons** |
+| `anify.tv`, `anify.eltik.cc` | timeout, 404 |
+| Community Vercel and Railway resolver deployments | 404 or 500, all dead |
+| Toonstream `/wp-json/`, `/wp/v2/posts`, `/sitemap.xml`, `/feed/` | challenge on every path |
+| Toonstream `.co`, `.net`, `.in`, `.day` | dead, dead, dead, domain auction page |
+| AnimePahe `.ru`, `.su`, `.si`, `.moe`, `.com` | squatters, dead, or Cloudflare |
+| AnimeKai `.to`, `.bz` | DNS failure, JS challenge |
+
+Operator intent is explicit in every case, which settles it independently of
+the technical blocks:
+
+- `animekai.bz/robots.txt`: `User-agent: *` / `Disallow: /`
+- `toonstream.love/robots.txt`: `User-agent: *` / `Disallow: /`
+- `animepahe.org/robots.txt`: `Content-Signal: search=yes,ai-train=no,use=reference`,
+  and a specific `User-agent: ClaudeBot` / `Disallow: /`
+
+That last line names this assistant's crawler directly, so probing AnimePahe
+stopped there. Two of the three sites disallow all automated clients outright.
+There is no version of integrating them that respects what their operators
+have written down.
+
 Note the abstraction was already ready for a better provider: `PlaybackTarget`
 has a `direct` variant carrying `url`, `mimeType`, `headers` and `subtitles`,
 and `StreamOption` carries `quality` and `audio`. That is the normalized source

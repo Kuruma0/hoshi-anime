@@ -29,6 +29,8 @@ export interface ContentRowProps {
    * Used by recommendations; omitted everywhere a rail is self-explanatory.
    */
   caption?: string;
+  /** Overrides the generic empty text where the rail can say something useful. */
+  emptyLabel?: string;
 }
 
 const ITEM_WIDTH = posterWidth.row;
@@ -53,6 +55,7 @@ export function ContentRow({
   onSeeAll,
   onEndReached,
   caption,
+  emptyLabel,
 }: ContentRowProps) {
   const showState = isLoading || error || items.length === 0;
 
@@ -78,6 +81,7 @@ export function ContentRow({
           state={isLoading ? 'loading' : error ? 'error' : 'empty'}
           error={error}
           onRetry={onRetry}
+          {...(emptyLabel ? { emptyLabel } : {})}
         />
       ) : (
         <FlashList

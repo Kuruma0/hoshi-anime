@@ -167,10 +167,20 @@ JavaScript challenge that mints a JWT and rejects clients that cannot run it.
 Getting a media URL from any of them means defeating the check, which this
 project does not do.
 
+The aggregator route was tried too, and is also closed: `api.consumet.org`, the
+resolver most projects depend on, now answers **HTTP 451, Unavailable For Legal
+Reasons**, and the surviving community deployments are dead.
+
+Operator intent is explicit and settles it independently of the technical
+blocks. AnimeKai and Toonstream both publish `User-agent: * / Disallow: /`, and
+AnimePahe publishes `Content-Signal: ai-train=no` together with a specific
+`User-agent: ClaudeBot / Disallow: /`. There is no version of integrating these
+that respects what their operators have written down.
+
 Worth knowing if you go looking: **`animepahe.ru` and `animepahe.su` are not
 AnimePahe.** They serve an obfuscated redirect to an ad network and fingerprint
 devtools. Those are the domains most guides still cite. `NOTES.md` has the
-decoded payload.
+decoded payload and the full route-by-route log.
 
 The provider abstraction was already ready for a better source: `PlaybackTarget`
 has a `direct` variant carrying url, MIME type, headers and subtitle tracks, and

@@ -95,11 +95,20 @@ export default function AnimeHomeScreen() {
           to personalise from, and the row renders its own loading state while
           the profile is built, so the rest of the page paints first.
         */}
+        {/*
+          Error is passed through rather than swallowed. Without it a failed
+          recommendation query renders the rail's generic empty label, so a
+          real outage is indistinguishable from having nothing to show, which
+          is the state that hid the last bug for so long.
+        */}
         <ContentRow
           title="Recommended for you"
           items={(recommended.data?.items ?? []).map(toRowItem)}
           caption={recommended.data?.reason}
           isLoading={recommended.isPending}
+          error={recommended.error}
+          onRetry={() => void recommended.refetch()}
+          emptyLabel="Nothing to suggest while offline."
           onSelect={(id) => router.push(routes.anime(id))}
         />
 
