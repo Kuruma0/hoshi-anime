@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
+  <!--
+    GitHub social preview card, 1280x640 (2:1, GitHub's own ratio).
+
+    Reuses the app mark and the real design tokens rather than inventing a
+    separate brand for the repository page: background `bg`, mark fill `accent`,
+    rule and highlight `accentBright`, copy in `text` and `textMuted`.
+
+    Upload under Settings, General, Social preview.
+  -->
+  <title>Hoshi.Anime</title>
+
+  <rect width="1280" height="640" fill="#0B0910" />
+
+  <!-- App mark, scaled from assets/logo.svg. -->
+  <g transform="translate(128 168) scale(0.594)">
+    <path
+      d="M256 16
+         C 372 16 436 52 462 132
+         C 488 212 496 300 462 372
+         C 428 444 356 496 256 496
+         C 148 496 76 452 44 372
+         C 12 292 20 200 52 130
+         C 84 60 140 16 256 16 Z"
+      fill="#6D4AA8" />
+
+    <g fill="#FFFFFF">
+      <rect x="118" y="196" width="30" height="120" rx="8" />
+      <rect x="196" y="196" width="30" height="120" rx="8" />
+      <rect x="118" y="241" width="108" height="28" rx="8" />
+
+      <g transform="translate(256 296)">
+        <rect x="-19" y="-19" width="38" height="38" rx="11" transform="rotate(45)" />
+        <rect x="-10" y="-20" width="20" height="40" rx="10" />
+      </g>
+
+      <path
+        d="M300 316 L344 196 L372 196 L416 316 L386 316 L377 289 L339 289 L330 316 Z
+           M348 262 L368 262 L358 231 Z" />
+    </g>
+  </g>
+
+  <g font-family="Segoe UI, Helvetica Neue, Arial, sans-serif">
+    <text x="512" y="272" fill="#F2EFF7" font-size="76" font-weight="700"
+      letter-spacing="-1.5">Hoshi.Anime</text>
+
+    <text x="512" y="332" fill="#A9A2B8" font-size="30" font-weight="400">
+      Watch anime and read manga in one app.
+    </text>
+
+    <!-- Purple as punctuation: one rule, marking the tech line. -->
+    <rect x="512" y="372" width="56" height="3" fill="#A47BF0" />
+
+    <text x="512" y="428" fill="#A9A2B8" font-size="25" font-weight="400"
+      letter-spacing="0.5">
+      Expo · React Native · TypeScript
+    </text>
+
+    <text x="512" y="472" fill="#6E6880" font-size="23" font-weight="400"
+      letter-spacing="0.5">
+      AniList · MangaDex · offline reading
+    </text>
+  </g>
+</svg>
