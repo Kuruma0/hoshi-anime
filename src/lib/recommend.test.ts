@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Anime } from '@/domain/anime';
+import type { WatchProgress } from '@/library/types';
 import {
   buildTasteProfile,
+  classifyWatch,
   diversify,
   eraSimilarity,
   explain,
@@ -49,6 +51,117 @@ function signal(overrides: Partial<TasteSignal> & { anime: Anime }): TasteSignal
 function scoredOf(items: readonly ScoredAnime[]): string[] {
   return items.map((entry) => entry.anime.id);
 }
+
+function watch(overrides: Partial<WatchProgress> = {}): WatchProgress {
+  return {
+    animeId: 'anilist:1',
+    episodeNumber: 1,
+    positionSeconds: 1400,
+    durationSeconds: 1440,
+    updatedAt: NOW,
+    title: 'Show',
+    ...overrides,
+  };
+}
+
+/*
+  This is the step that did not exist before. Recommendations read the saved
+  list and nothing else, so watching an anime without pressing Add to list
+  produced no signal, an unusable profile, an empty result and the rail's
+  default "Nothing here yet". These cover the classification directly.
+*/
+describe('classifyWatch', () => {
+  it('counts watching an episode as history without any explicit action', () => {
+    const kind = classifyWatch(watch(), anime({ id: 'a', episodeCount: 12 }), NOW);
+    expect(kind).toBe('watching');
+  });
+
+  it('marks a finished final episode as completed', () => {
+    const kind = classifyWatch(
+      watch({ episodeNumber: 12, positionSeconds: 1430, durationSeconds: 1440 }),
+      anime({ id: 'a', episodeCount: 12 }),
+      NOW
+    );
+    expect(kind).toBe('completed');
+  });
+
+  it('does not call the final episode complete when it was only half watched', () => {
+    const kind = classifyWatch(
+      watch({ episodeNumber: 12, positionSeconds: 700, durationSeconds: 1440 }),
+      anime({ id: 'a', episodeCount: 12 }),
+      NOW
+    );
+    expect(kind).toBe('watching');
+  });
+
+  it('stays conservative when the provider publishes no episode count', () => {
+    const kind = classifyWatch(
+      watch({ episodeNumber: 99, positionSeconds: 1430, durationSeconds: 1440 }),
+      anime({ id: 'a', episodeCount: undefined }),
+      NOW
+    );
+    expect(kind).toBe('watching');
+  });
+
+  it('treats a barely started, long untouched title as abandoned', () => {
+    const kind = classifyWatch(
+      watch({ episodeNumber: 1, positionSeconds: 200, durationSeconds: 1440, updatedAt: NOW - 60 * DAY }),
+      anime({ id: 'a', episodeCount: 24 }),
+      NOW
+    );
+    expect(kind).toBe('abandoned');
+  });
+
+  it('does not call a recent drop-off abandoned', () => {
+    const kind = classifyWatch(
+      watch({ episodeNumber: 1, positionSeconds: 200, durationSeconds: 1440, updatedAt: NOW - DAY }),
+      anime({ id: 'a', episodeCount: 24 }),
+      NOW
+    );
+    expect(kind).toBe('watching');
+  });
+
+  it('does not call someone deep into a series abandoned', () => {
+    const kind = classifyWatch(
+      watch({ episodeNumber: 9, positionSeconds: 200, durationSeconds: 1440, updatedAt: NOW - 60 * DAY }),
+      anime({ id: 'a', episodeCount: 24 }),
+      NOW
+    );
+    expect(kind).toBe('watching');
+  });
+});
+
+describe('watch history produces a usable profile on its own', () => {
+  it('builds a profile from watching alone, with nothing saved', () => {
+    const profile = buildTasteProfile(
+      [
+        signal({ anime: anime({ id: 'a', genres: ['Action'] }), kind: 'watching' }),
+        signal({ anime: anime({ id: 'b', genres: ['Action'] }), kind: 'watching' }),
+      ],
+      NOW
+    );
+
+    expect(isProfileUsable(profile)).toBe(true);
+    expect(profile.genres.get('action')).toBe(1);
+  });
+
+  it('ranks real candidates from a watch-only profile', () => {
+    const profile = buildTasteProfile(
+      [
+        signal({ anime: anime({ id: 'a', genres: ['Action'], score: 80 }), kind: 'watching' }),
+        signal({ anime: anime({ id: 'b', genres: ['Action'], score: 80 }), kind: 'watching' }),
+      ],
+      NOW
+    );
+
+    const ranked = rankByTaste(profile, [
+      anime({ id: 'match', genres: ['Action'], score: 82 }),
+      anime({ id: 'miss', genres: ['Sports'], score: 40 }),
+    ]);
+
+    expect(scoredOf(ranked)[0]).toBe('match');
+  });
+});
 
 describe('weights', () => {
   it('sum to exactly 1, so a perfect match scores 1', () => {

@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Anime } from '@/domain/anime';
-import { library } from '@/library/storage';
-import { isEpisodeComplete, type WatchProgress } from '@/library/types';
+import type { WatchProgress } from '@/library/types';
 import {
   buildTasteProfile,
+  classifyWatch,
   interleave,
   isProfileUsable,
   rankBySimilarity,
@@ -12,7 +12,7 @@ import {
   type TasteSignal,
 } from '@/lib/recommend';
 import { getAnimeProvider } from '@/providers/registry';
-import { useLibraryEntries } from './library';
+import { useLibraryEntries, useWatchHistory } from './library';
 
 /**
  * Recommendation service.
@@ -40,14 +40,6 @@ const HISTORY_LIMIT = 20;
 /** How many candidates each pool contributes before scoring. */
 const POOL_SIZE = 50;
 
-/**
- * Progress below this fraction of the first episodes, with nothing since,
- * reads as abandoned rather than as taste.
- */
-const ABANDON_PROGRESS = 0.5;
-const ABANDON_EPISODE = 2;
-const ABANDON_AGE_MS = 30 * 24 * 60 * 60 * 1000;
-
 const recommendationKeys = {
   forTitle: (id: string) => ['recommendations', 'title', id] as const,
   forYou: (signature: string) => ['recommendations', 'you', signature] as const,
@@ -56,42 +48,6 @@ const recommendationKeys = {
 /* -------------------------------------------------------------------------- */
 /* Signals                                                                     */
 /* -------------------------------------------------------------------------- */
-
-/**
- * Classify one watch record into a taste signal kind.
- *
- * Completion needs the episode count, which many currently-airing shows do not
- * publish; without it the record can only be called "watching", which is the
- * conservative reading and is exactly what it is.
- */
-export function classifyWatch(
-  progress: WatchProgress,
-  anime: Anime,
-  now: number
-): 'completed' | 'watching' | 'abandoned' {
-  const finishedEpisode = isEpisodeComplete(progress);
-
-  if (
-    anime.episodeCount !== undefined &&
-    progress.episodeNumber >= anime.episodeCount &&
-    finishedEpisode
-  ) {
-    return 'completed';
-  }
-
-  // Barely started, and untouched for a month. Treated cautiously: this only
-  // ever contributes a small negative, and one title cannot veto a genre.
-  const fraction = progress.durationSeconds
-    ? progress.positionSeconds / progress.durationSeconds
-    : 1;
-  const stale = now - progress.updatedAt > ABANDON_AGE_MS;
-
-  if (stale && progress.episodeNumber <= ABANDON_EPISODE && fraction < ABANDON_PROGRESS) {
-    return 'abandoned';
-  }
-
-  return 'watching';
-}
 
 /**
  * Everything the app legitimately knows about this viewer's anime taste.
@@ -105,11 +61,11 @@ export function classifyWatch(
  */
 async function collectSignals(
   savedIds: readonly string[],
+  watched: readonly WatchProgress[],
   signal: AbortSignal | undefined,
   now: number
 ): Promise<TasteSignal[]> {
   const provider = getAnimeProvider();
-  const watched = await library.listWatchProgress(HISTORY_LIMIT);
 
   const ids = new Set<string>([...savedIds, ...watched.map((entry) => entry.animeId)]);
   const progressById = new Map(watched.map((entry) => [entry.animeId, entry]));
@@ -188,6 +144,49 @@ export interface RecommendationResult {
   personalised: boolean;
   /** Per title scoring, for tests and development inspection. Empty when cold. */
   scored: ScoredAnime[];
+  /** Stage-by-stage counts. Development only; see `logDiagnostics`. */
+  diagnostics: RecommendationDiagnostics;
+}
+
+/** Where titles went at each stage of the pipeline. */
+export interface RecommendationDiagnostics {
+  savedCount: number;
+  watchRecords: number;
+  signals: number;
+  signalsByKind: Record<string, number>;
+  profileGenres: number;
+  profileUsable: boolean;
+  candidates: number;
+  excluded: number;
+  ranked: number;
+  returned: number;
+  path: 'personalised' | 'fallback';
+}
+
+/**
+ * Print the pipeline's stage counts in development.
+ *
+ * Guarded by `__DEV__` so nothing reaches a release build. This exists because
+ * "the row is empty" has at least six possible causes and guessing between them
+ * from the outside is how the last bug survived: no history read, no candidates,
+ * everything filtered, or a UI state problem all look identical on screen.
+ */
+function logDiagnostics(diagnostics: RecommendationDiagnostics): void {
+  if (!__DEV__) return;
+
+  console.log(
+    [
+      `[recommendations] ${diagnostics.path}`,
+      `  saved: ${diagnostics.savedCount}`,
+      `  watch records: ${diagnostics.watchRecords}`,
+      `  signals: ${diagnostics.signals} ${JSON.stringify(diagnostics.signalsByKind)}`,
+      `  profile genres: ${diagnostics.profileGenres} (usable: ${diagnostics.profileUsable})`,
+      `  candidates: ${diagnostics.candidates}`,
+      `  excluded: ${diagnostics.excluded}`,
+      `  ranked: ${diagnostics.ranked}`,
+      `  returned: ${diagnostics.returned}`,
+    ].join('\n')
+  );
 }
 
 /**
@@ -238,8 +237,25 @@ export function useSimilarAnime(anime: Anime | undefined) {
  */
 export function useRecommendedForYou(limit = 20) {
   const saved = useLibraryEntries('anime');
+  const history = useWatchHistory(HISTORY_LIMIT);
+
   const savedIds = (saved.data ?? []).map((entry) => entry.id);
-  const signature = savedIds.join(',');
+  const watched = history.data ?? [];
+
+  /*
+    The cache key has to cover watch history, not just the saved list.
+    Previously it was the saved ids alone, which meant that for anyone who
+    watches without tapping Add to list the signature was permanently the empty
+    string: watching more anime changed nothing, and the row stayed on whatever
+    was cached until the hour expired. Episode numbers are included so getting
+    further into a series counts as a change too.
+  */
+  const signature = [
+    ...savedIds,
+    ...watched.map((entry) => `${entry.animeId}@${entry.episodeNumber}`),
+  ]
+    .sort()
+    .join(',');
 
   return useQuery({
     queryKey: recommendationKeys.forYou(signature),
@@ -248,8 +264,27 @@ export function useRecommendedForYou(limit = 20) {
       const pools = await candidatePools(signal);
       const candidates = pools.flat();
 
-      const signals = await collectSignals(savedIds, signal, now);
+      const signals = await collectSignals(savedIds, watched, signal, now);
       const profile = buildTasteProfile(signals, now);
+
+      const signalsByKind: Record<string, number> = {};
+      for (const entry of signals) {
+        signalsByKind[entry.kind] = (signalsByKind[entry.kind] ?? 0) + 1;
+      }
+
+      const diagnostics: RecommendationDiagnostics = {
+        savedCount: savedIds.length,
+        watchRecords: watched.length,
+        signals: signals.length,
+        signalsByKind,
+        profileGenres: profile.genres.size,
+        profileUsable: isProfileUsable(profile),
+        candidates: candidates.length,
+        excluded: 0,
+        ranked: 0,
+        returned: 0,
+        path: 'fallback',
+      };
 
       if (isProfileUsable(profile)) {
         // Everything the viewer already has or already finished is excluded.
@@ -263,26 +298,41 @@ export function useRecommendedForYou(limit = 20) {
 
         const scored = rankByTaste(profile, candidates, { exclude, limit });
 
+        diagnostics.excluded = exclude.size;
+        diagnostics.ranked = scored.length;
+
         if (scored.length > 0) {
+          diagnostics.path = 'personalised';
+          diagnostics.returned = scored.length;
+          logDiagnostics(diagnostics);
+
           return {
             items: scored.map((entry) => entry.anime),
             reason: 'Based on what you have watched and saved',
             personalised: true,
             scored,
+            diagnostics,
           };
         }
       }
 
       // Cold start, and the fallback for a profile that matched nothing. Same
       // path for both, because the honest answer is the same in both cases.
+      const items = interleave(pools, limit);
+      diagnostics.returned = items.length;
+      logDiagnostics(diagnostics);
+
       return {
-        items: interleave(pools, limit),
+        items,
         reason: 'Trending, popular and highly rated right now',
         personalised: false,
         scored: [],
+        diagnostics,
       };
     },
-    enabled: saved.isSuccess,
+    // Both feed the profile, so both must have loaded or the first run would
+    // build a profile from half the history and cache the result.
+    enabled: saved.isSuccess && history.isSuccess,
     staleTime: CACHE_TIME,
     gcTime: CACHE_TIME,
   });

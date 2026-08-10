@@ -1,4 +1,5 @@
 import type { Anime } from '@/domain/anime';
+import { isEpisodeComplete, type WatchProgress } from '@/library/types';
 
 /**
  * Local recommendation engine.
@@ -76,6 +77,56 @@ export const SIGNAL_WEIGHTS: Record<SignalKind, number> = {
 export const RECENCY_HALF_LIFE_DAYS = 120;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Progress this far into one of the first episodes, untouched since, reads as
+ * abandoned rather than as taste.
+ */
+export const ABANDON_PROGRESS = 0.5;
+export const ABANDON_EPISODE = 2;
+export const ABANDON_AGE_MS = 30 * DAY_MS;
+
+/**
+ * Classify one watch record into a taste signal kind.
+ *
+ * Watching anything at all is a signal. This is the step that was missing
+ * entirely before: recommendations only ever looked at the saved list, so
+ * someone who watched without pressing Add to list had no profile and got an
+ * empty row.
+ *
+ * Completion needs the episode count, which many currently-airing shows do not
+ * publish. Without it the record can only be called "watching", which is the
+ * conservative reading and is also simply what it is.
+ */
+export function classifyWatch(
+  progress: WatchProgress,
+  anime: Anime,
+  now: number
+): Exclude<SignalKind, 'saved'> {
+  if (
+    anime.episodeCount !== undefined &&
+    progress.episodeNumber >= anime.episodeCount &&
+    isEpisodeComplete(progress)
+  ) {
+    return 'completed';
+  }
+
+  // Barely started, and untouched for a month. Treated cautiously: this only
+  // ever contributes a small negative, and one title cannot veto a genre.
+  const fraction = progress.durationSeconds
+    ? progress.positionSeconds / progress.durationSeconds
+    : 1;
+
+  if (
+    now - progress.updatedAt > ABANDON_AGE_MS &&
+    progress.episodeNumber <= ABANDON_EPISODE &&
+    fraction < ABANDON_PROGRESS
+  ) {
+    return 'abandoned';
+  }
+
+  return 'watching';
+}
 
 /**
  * Recency multiplier, 1 at now, 0.5 one half life ago, approaching 0.

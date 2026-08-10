@@ -39,5 +39,14 @@ export const keys = {
     readProgress: (id: string) => ['library', 'read', id] as const,
     continueWatching: () => ['library', 'continue', 'watching'] as const,
     continueReading: () => ['library', 'continue', 'reading'] as const,
+    /**
+     * Raw watch records, completed ones included.
+     *
+     * Deliberately not `continueWatching`, which drops finished episodes;
+     * finishing a series is the strongest recommendation signal there is, so
+     * the recommender needs the unfiltered list. Living under `library` is what
+     * makes saving progress invalidate it.
+     */
+    watchHistory: () => ['library', 'watch', 'history'] as const,
   },
 } as const;

@@ -98,6 +98,23 @@ export function useContinueWatching(limit = 12) {
   });
 }
 
+/**
+ * Every watch record, finished ones included.
+ *
+ * Separate from Continue Watching on purpose: that rail hides completed
+ * episodes because a finished show should not sit at the top of it forever,
+ * but finishing a series is exactly what the recommender most wants to know.
+ * Reading it through a query key under `library` is what makes saving progress
+ * invalidate it, which is what keeps recommendations current.
+ */
+export function useWatchHistory(limit = 20) {
+  return useQuery({
+    queryKey: keys.library.watchHistory(),
+    queryFn: () => library.listWatchProgress(limit),
+    staleTime: 0,
+  });
+}
+
 /* ------------------------------------------------------------------ */
 /* Read progress                                                       */
 /* ------------------------------------------------------------------ */

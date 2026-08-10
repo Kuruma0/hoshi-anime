@@ -149,6 +149,34 @@ Two behaviours worth knowing, both found against the live API:
   and marked "Off-site"; filtering them would make a fully licensed series look
   as though it has no chapters.
 
+### Additional anime sources, investigated, rejected
+
+AnimePahe, AnimeKai and Toonstream were each probed directly. **All three sit
+behind bot protection, and none was integrated.**
+
+| Provider | Reachable programmatically | Public API | Source | Verdict |
+|---|---|---|---|---|
+| VidKing | yes | documented embed | encrypted, tokenized HLS | in use |
+| AnimePahe | no, Cloudflare 403 | none | Kwik, obfuscated | rejected |
+| AnimeKai | no, JS challenge | none | MegaUp, encrypted | rejected |
+| Toonstream | no, JS challenge | none | third-party embeds | rejected |
+
+AnimePahe's real domain answers 403 to any non-browser client and resolves
+sources through obfuscated Kwik scripts. AnimeKai and Toonstream share a
+JavaScript challenge that mints a JWT and rejects clients that cannot run it.
+Getting a media URL from any of them means defeating the check, which this
+project does not do.
+
+Worth knowing if you go looking: **`animepahe.ru` and `animepahe.su` are not
+AnimePahe.** They serve an obfuscated redirect to an ad network and fingerprint
+devtools. Those are the domains most guides still cite. `NOTES.md` has the
+decoded payload.
+
+The provider abstraction was already ready for a better source: `PlaybackTarget`
+has a `direct` variant carrying url, MIME type, headers and subtitle tracks, and
+`StreamOption` carries quality and audio track. Adding a provider that resolves
+legitimately is a class plus a registry line, with no player changes.
+
 ### Additional manga sources, investigated, deferred
 
 Each was probed directly. **MangaDex is the only one with a documented,
@@ -213,7 +241,7 @@ nothing leaves the device. The engine is `src/lib/recommend.ts`, which is pure;
 `src/data/recommendations.ts` owns fetching and caching.
 
 ```
-activity      saved list, watch progress (nothing else is collected)
+activity      saved list AND watch history (nothing else is collected)
    |
 signals       completed 1.0 | watching 0.6 | saved 0.5 | abandoned -0.35
    |          each multiplied by recency, half life 120 days
@@ -246,7 +274,16 @@ A few decisions worth stating outright:
   labelled as exactly that instead of dressed up as personal.
 
 `ScoreBreakdown` carries every component through to the result, so any ranking
-can be inspected rather than taken on trust.
+can be inspected rather than taken on trust. In development the hook also logs
+per-stage counts (signals, candidates, excluded, ranked, returned), because "the
+row is empty" has several possible causes that look identical on screen.
+
+**Watching counts on its own.** Playing episodes builds the profile with no
+Add to list, no rating and no favourite required. This is worth stating because
+it did not used to be true: recommendations read the saved list and nothing
+else, so anyone who watched without saving got an empty row reading "Nothing
+here yet". Watch history is now a first-class signal and is part of the cache
+key, so finishing an episode refreshes the row.
 
 ---
 

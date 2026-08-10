@@ -101,6 +101,46 @@ No Download Episode button was added. A control that can never succeed for any
 title is worse than its absence, and the offline library and Settings already
 say plainly that anime cannot be saved.
 
+### AnimePahe / AnimeKai / Toonstream, probed and rejected
+All three probed directly on 2026-08-10. **None is integrable without defeating
+a protection mechanism, so none was integrated.**
+
+**Watch out: `animepahe.ru` and `animepahe.su` are not AnimePahe.** Both return
+an identical 1576 byte page (server `Angie`) whose obfuscated script
+base64-decodes to `https://bulsis.net/go/2954557?...&subid2=animepahe.su`, an ad
+redirect network. It also fingerprints devtools by comparing `outerWidth` to
+`innerWidth` before firing. These are the domains most tutorials still cite. Do
+not point anything at them.
+
+The real site is `animepahe.org`, which redirects to `animepahe.pw` and answers
+**403 from Cloudflare** to any non-browser client; in a real browser it shows
+"Performing security verification". Source resolution then runs through Kwik
+with packed, obfuscated JS. Getting a media URL means passing the bot check
+programmatically and then deobfuscating Kwik. Both are circumvention.
+
+`animekai.bz` and `toonstream.love` share one gate: a 470 byte "Loading..."
+page that mints a `Joken` JWT and requires the client to re-request with
+`?ch=1&js=<jwt>&sid=<uuid>`. It exists to admit browsers and reject
+programmatic clients, which is precisely what Hoshi would have to be.
+
+| Provider | Reachable without a challenge | Public API | Source | Verdict |
+|---|---|---|---|---|
+| VidKing | yes | documented embed | encrypted, resolves to tokenized HLS | in use |
+| AnimePahe | no, Cloudflare 403 | none | Kwik, obfuscated | rejected |
+| AnimeKai | no, JS/JWT gate | none | MegaUp, encrypted | rejected |
+| Toonstream | no, JS/JWT gate | none | third-party embeds | rejected |
+
+Nothing beyond format was confirmed for the rejected three, because confirming
+it would have meant getting past the gate. Blank is honest; invented values
+would not be.
+
+Note the abstraction was already ready for a better provider: `PlaybackTarget`
+has a `direct` variant carrying `url`, `mimeType`, `headers` and `subtitles`,
+and `StreamOption` carries `quality` and `audio`. That is the normalized source
+model, already built. `downloadable` and `expiresAt` were deliberately not added
+because no provider can populate them, and fields no code can fill are dead
+weight.
+
 ### VidLink is DISABLED
 Kept in the tree, absent from registry.ts. See providers/stream/vidlink.ts for
 why and how to re-enable. Do not wire it back in without checking it resolves.
