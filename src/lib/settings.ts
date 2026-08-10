@@ -18,6 +18,13 @@ export interface SettingsState {
   dataSaver: boolean;
   /** Keep the screen awake while reading. */
   keepAwakeWhileReading: boolean;
+  /**
+   * Refuse chapter downloads on a mobile connection.
+   *
+   * On by default: a chapter is roughly a megabyte a page, which is the kind of
+   * thing that should be an opt-in on a metered plan rather than a surprise.
+   */
+  downloadOverWifiOnly: boolean;
   /** Preferred manga source id, remembered per user rather than per title. */
   preferredMangaSource?: string;
 
@@ -39,6 +46,7 @@ export interface SettingsState {
   setReadingDirection: (direction: ReadingDirection) => void;
   setDataSaver: (enabled: boolean) => void;
   setKeepAwakeWhileReading: (enabled: boolean) => void;
+  setDownloadOverWifiOnly: (enabled: boolean) => void;
   setPreferredMangaSource: (sourceId: string | undefined) => void;
   setPreferredVideoProvider: (providerId: string | undefined) => void;
   setReduceMotion: (enabled: boolean) => void;
@@ -55,6 +63,7 @@ export const useSettings = create<SettingsState>()(
       readingDirection: 'ltr',
       dataSaver: false,
       keepAwakeWhileReading: true,
+      downloadOverWifiOnly: true,
       preferredMangaSource: undefined,
       reduceMotion: false,
 
@@ -64,6 +73,7 @@ export const useSettings = create<SettingsState>()(
       setReadingDirection: (readingDirection) => set({ readingDirection }),
       setDataSaver: (dataSaver) => set({ dataSaver }),
       setKeepAwakeWhileReading: (keepAwakeWhileReading) => set({ keepAwakeWhileReading }),
+      setDownloadOverWifiOnly: (downloadOverWifiOnly) => set({ downloadOverWifiOnly }),
       setPreferredMangaSource: (preferredMangaSource) => set({ preferredMangaSource }),
       setPreferredVideoProvider: (preferredVideoProvider) => set({ preferredVideoProvider }),
       setReduceMotion: (reduceMotion) => set({ reduceMotion }),

@@ -1,8 +1,15 @@
-import { ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SectionHeader } from '@/components/SectionHeader';
+import {
+  useAvailableStorage,
+  useDeleteAllDownloads,
+  useOfflineLibrary,
+} from '@/data/offline';
+import { Button } from '@/design/Button';
 import { Text } from '@/design/Text';
 import { color, gutter, hairline, sectionGap, space, touchTarget, type } from '@/design/tokens';
+import { formatBytes } from '@/offline/types';
 import { getAnimeProvider, getMangaProvider, getStreamProvider } from '@/providers/registry';
 import { useSettings } from '@/lib/settings';
 
@@ -16,6 +23,23 @@ import { useSettings } from '@/lib/settings';
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const settings = useSettings();
+
+  const offline = useOfflineLibrary();
+  const availableBytes = useAvailableStorage();
+  const deleteAll = useDeleteAllDownloads();
+
+  const downloadCount = offline.data?.count ?? 0;
+
+  const confirmDeleteAll = () => {
+    Alert.alert(
+      'Delete all downloads?',
+      `${downloadCount} chapter${downloadCount === 1 ? '' : 's'} will be removed from this device. Your saved list and reading progress are not affected.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteAll.mutate() },
+      ]
+    );
+  };
 
   return (
     <ScrollView
@@ -47,6 +71,48 @@ export default function SettingsScreen() {
 
         <Text variant="meta" tone="faint" style={styles.note}>
           Reading mode and direction are in the reader, under Display.
+        </Text>
+      </View>
+
+      {/*
+        Only downloads that actually exist are configurable here. There is no
+        anime option because the video never reaches the app: playback runs
+        inside the provider's embedded player, so a setting for it would promise
+        something the app cannot do.
+      */}
+      <View style={styles.block}>
+        <SectionHeader title="Offline" />
+
+        <Toggle
+          label="Download over Wi-Fi only"
+          detail="Chapters run roughly a megabyte a page."
+          value={settings.downloadOverWifiOnly}
+          onChange={settings.setDownloadOverWifiOnly}
+        />
+
+        <View style={styles.storage}>
+          <Text variant="body">
+            {downloadCount} chapter{downloadCount === 1 ? '' : 's'} saved
+          </Text>
+          <Text variant="meta" tone="faint" style={styles.toggleDetail}>
+            {formatBytes(offline.data?.bytes ?? 0)} used
+            {availableBytes > 0 ? `, ${formatBytes(availableBytes)} free` : ''}
+          </Text>
+        </View>
+
+        {downloadCount > 0 ? (
+          <Button
+            label={deleteAll.isPending ? 'Deleting…' : 'Delete all downloads'}
+            variant="secondary"
+            onPress={confirmDeleteAll}
+            disabled={deleteAll.isPending}
+            style={styles.destructive}
+          />
+        ) : null}
+
+        <Text variant="meta" tone="faint" style={styles.note}>
+          Anime cannot be saved for offline viewing. Playback runs inside the
+          video provider's own player, so the app never receives the video file.
         </Text>
       </View>
 
@@ -169,4 +235,11 @@ const styles = StyleSheet.create({
   },
   toggleText: { flex: 1, marginRight: space.lg },
   toggleDetail: { marginTop: 2 },
+  storage: {
+    paddingHorizontal: gutter,
+    paddingVertical: space.md,
+    borderTopWidth: hairline,
+    borderTopColor: color.line,
+  },
+  destructive: { marginHorizontal: gutter, marginTop: space.sm },
 });

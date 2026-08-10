@@ -2,7 +2,37 @@
 
 Watch anime and read manga in one app. Dark, image-led, purple-accented.
 
-Expo (SDK 57) · React Native · TypeScript.
+Expo (SDK 57) · React Native 0.86 · TypeScript 6, strict.
+
+---
+
+## Features
+
+**Anime**
+
+- Discovery home with an auto-advancing Trending carousel, seasonal, popular and
+  genre rails
+- Detail pages with trailers, cast and studio metadata, and a season and
+  adaptation graph you can navigate
+- Episode grid that stays usable on a 1,100-episode series, chunked into ranges
+  rather than one endless list
+- In-app playback with resume, watch progress written back per episode
+- Weekly release schedule, bucketed to the device timezone
+
+**Manga**
+
+- Chapter lists with scanlation groups, languages and off-site publisher links
+- Reader with vertical and paged modes, right-to-left support, data saver,
+  keep-awake and per-chapter progress
+- Multiple source support with a source picker and your own local star ratings
+
+**Both**
+
+- Cross-linking between an anime and its manga, and back
+- Local recommendations scored from what you have saved, no account required
+- Offline reading, chapters downloaded to the device
+- Library with saved titles, continue watching and continue reading
+- Search across both libraries with cross-language title matching
 
 ---
 
@@ -16,12 +46,12 @@ npm install
 npm start
 ```
 
-Scan the QR code with Expo Go, or press `a` for Android / `w` for web.
+Scan the QR code with Expo Go, or press `a` for Android or `w` for web.
 
 | Command | What it does |
 |---|---|
 | `npm start` | Dev server |
-| `npm test` | Unit tests (no network) |
+| `npm test` | Unit tests, no network |
 | `npm run test:integration` | Live checks against the real APIs |
 | `npm run typecheck` | `tsc --noEmit` |
 
@@ -29,7 +59,7 @@ Scan the QR code with Expo Go, or press `a` for Android / `w` for web.
 
 **None.** Every integration uses a public, unauthenticated API, so there is no
 `.env`, no API key, and no `.env.example` to fill in. If that changes, the
-variable belongs in `.gitignore`'d `.env` and documented here.
+variable belongs in a `.gitignore`'d `.env` and documented here.
 
 ---
 
@@ -46,10 +76,11 @@ src/providers/      │   registry.ts picks the implementation
  ├── types.ts       │   AnimeProvider · MangaProvider · AnimeStreamProvider
  ├── anilist/       │   anime metadata, discovery, schedule, relations
  ├── mangadex/      │   manga metadata, chapters, page images
- ├── mapping/       │   AniList → TMDB id bridge
- └── stream/        │   VidKing playback
+ ├── mapping/       │   AniList to TMDB id bridge
+ └── stream/        │   playback services and embed runtimes
 src/domain/             provider-agnostic models
 src/library/            local-first persistence (list, progress, source ratings)
+src/offline/            downloaded chapters, its own storage and index
 src/lib/                http, rate limiting, errors, title matching, routes
 src/design/             tokens and primitives
 ```
@@ -78,59 +109,37 @@ app, hence the token bucket in `src/lib/rateLimiter.ts` and the long
 Backs discovery, search, genres, recommendations, the release schedule, the
 relationship graph (seasons and adaptations), and trailers.
 
-### Anime playback, VidLink with VidKing fallback
-
-WATCH opens the player directly. There is no source prompt, and the fallback is
-invisible: the user sees one loading state and then the episode.
-
-```
-Watch -> PlaybackService -> VidLink -> playable?  yes -> play
-                                    \  no -> VidKing -> play
-```
-
-**VidLink** leads because it has an anime route keyed on the MyAnimeList id,
-`/anime/{malId}/{episode}/{sub|dub}`, and AniList already gives us that id. No
-cross-database lookup sits between pressing Watch and the player, and there is
-no season-mapping guesswork, which TMDB addressing forces on anime where one
-AniList entry per season has to be reconciled with one TMDB show.
-
-**VidKing** follows because it is keyed on TMDB, so it can serve titles that
-have no MyAnimeList id at all.
-
-Falling back is harder than it sounds: the embed answers HTTP 200 and only then
-renders "episode not found" inside the page, so availability cannot be checked
-before the WebView runs. VidLink documents `fallback_url` for this, so the
-player is given a sentinel address to navigate to when a stream will not load.
-The screen watches for it and asks the service again, excluding the provider
-that failed. The exclusion list only grows, so the sequence always terminates
-and cannot cycle.
-
-Each provider supplies an `EmbedRuntime`: its bridge script, its progress
-parser, and the name of its resume parameter (`startAt` for VidLink, `progress`
-for VidKing). The player screen deals only in `PlaybackProgress` and never names
-a provider, which is what keeps one watch-progress system rather than one per
-player.
-
-### Previously, VidKing only
+### Anime playback, VidKing
 
 ```
 https://www.vidking.net/embed/tv/{tmdbId}/{season}/{episode}
 ```
 
-WATCH opens the player directly, no source prompt, no external hand-off.
+WATCH opens the player directly, no source prompt and no external hand-off.
 
 VidKing addresses content by **TheMovieDB** id, which AniList does not publish,
 so [arm.haglund.dev](https://arm.haglund.dev) bridges the two. Watch progress is
-real: the player posts `timeupdate`/`pause`/`ended`/`seeked` with `currentTime`
-and `duration`, forwarded out of the WebView by `VIDKING_EVENT_BRIDGE`. Resume
-is applied through the `progress` URL parameter.
+real: the player posts `timeupdate`, `pause`, `ended` and `seeked` with
+`currentTime` and `duration`, forwarded out of the WebView by
+`VIDKING_EVENT_BRIDGE`. Resume is applied through the `progress` URL parameter.
 
-There is no user-facing source setting; playback is handled internally.
+Playback runs through a `PlaybackService` that takes a list of providers and
+falls back down it when one reports failure, so a second source is a constructor
+argument rather than a rewrite. Each provider supplies an `EmbedRuntime`: its
+bridge script, its progress parser, and the name of its resume parameter. The
+player screen deals only in `PlaybackProgress` and never names a provider, which
+is what keeps one watch-progress system rather than one per player.
+
+**VidLink is currently disabled.** Its provider and runtime are still in
+`src/providers/stream/`, tested and intact, but `registry.ts` deliberately does
+not import them: the service returned "episode not found" for every title
+probed, on both its anime and tv routes. Re-enabling it is one import and one
+array entry.
 
 ### Manga, MangaDex
 
-Public REST, no auth for reads. ~5 requests/second per IP, requires a
-descriptive `User-Agent`, collections cap at `offset + limit ≤ 10,000`.
+Public REST, no auth for reads. Roughly 5 requests/second per IP, requires a
+descriptive `User-Agent`, and collections cap at `offset + limit ≤ 10,000`.
 
 Two behaviours worth knowing, both found against the live API:
 
@@ -161,6 +170,32 @@ plus a registry entry.
 
 ---
 
+## Offline
+
+**Manga chapters download; anime does not.** That asymmetry is a property of the
+providers, not a missing feature.
+
+MangaDex serves page images as ordinary files over plain HTTP GET, so a chapter
+is a directory of images and downloading it is honest. The video providers hand
+back an embed *page* URL, and the actual stream is resolved inside that page's
+own player at runtime. The app never receives a manifest or a media file, so
+there is nothing to save. Rather than ship a download button that stores a URL
+which stops working the moment you lose signal, the offline library says so
+directly.
+
+Downloads live in their own AsyncStorage index and their own directory,
+separate from the query cache, so clearing cached metadata never deletes
+something the user chose to keep. Pages are fetched sequentially, and a failed
+chapter removes its partial directory so a retry starts clean.
+
+Connection state is bridged into TanStack Query's `onlineManager` once, at the
+root. Query pauses rather than retries while offline, which is what actually
+stops the app reissuing requests that cannot succeed, and paused queries resume
+on their own when the connection returns. The reader checks for a local copy
+first and skips the network entirely when it finds one.
+
+---
+
 ## Design
 
 Defined as values in `src/design/tokens.ts`, so drifting from it means editing
@@ -172,19 +207,21 @@ that file on purpose.
 - **Gradients only as hero scrims**, where they exist for text legibility over
   arbitrary artwork.
 - **Purple is punctuation**, one primary action per screen, one selected item.
-- **Text-only tab bar.** "Anime" and "Manga" have no meaningful glyph.
 
 ---
 
 ## Testing
 
-`npm test`, 149 unit tests, no network. Response normalization, cross-language
-title matching, chapter ordering, timezone bucketing, rating normalization,
-contrast maths, VidKing URL building and event parsing.
+`npm test`, **231 unit tests**, no network. Response normalization,
+cross-language title matching, chapter ordering, timezone bucketing, rating
+normalization, contrast maths, episode range chunking, recommendation scoring,
+offline grouping and size formatting, and embed URL building and event parsing
+for both players.
 
-`npm run test:integration`, 29 live tests against AniList, MangaDex and the ARM
-mapping service. Real search, pagination, every discovery section, real page
-images, the relationship graph, and error mapping.
+`npm run test:integration`, **29 live tests** against AniList, MangaDex and the
+ARM mapping service. Real search, pagination, every discovery section, real page
+images, the relationship graph, and error mapping. Kept in a separate config
+because `npm test` must never fail because a provider is down.
 
 ---
 
@@ -194,22 +231,32 @@ images, the relationship graph, and error mapping.
   (`color`, `autoPlay`, `nextEpisode`, `episodeSelector`, `progress`) and none
   of them relate to advertising. Ads arrive as third-party scripts and XHR from
   ad-exchange hosts, and react-native-webview offers no supported hook to cancel
-  an individual subresource; so those requests cannot be filtered without
-  native code. What *is* controlled is navigation: `playbackPolicy.ts` cancels
-  any attempt to take the player off its own site and refuses popups, which
-  removes the redirect and popup interruptions. Non-interruptive in-page ads
-  remain. Blocking by hostname was rejected on evidence: one of the HLS segment
-  CDNs sits on a `.top` domain and a TLD heuristic would have killed playback.
+  an individual subresource, so they cannot be filtered without native code.
+  Blocking by hostname was rejected on evidence: one of the HLS segment CDNs
+  sits on a `.top` domain and a TLD heuristic would have killed playback
+  outright. The player screen states this rather than pretending otherwise.
+- **Playback availability is regional.** VidKing manifests resolve but segments
+  have been observed 404ing from its rotating CDN hosts on some connections.
+  Nothing in the app can fix that.
 - **Episode lists are generated.** AniList publishes a total count plus a
   partial `streamingEpisodes` array, not a canonical per-episode endpoint.
   Episodes are built from the count and enriched where a streaming entry matches
   by number; unaired ones are marked upcoming rather than shown as available.
-- **Anime → manga is matched by title.** AniList names the source manga but in
+- **Anime to manga is matched by title.** AniList names the source manga but in
   its own id space; MangaDex has no shared key, so the link is made by confident
-  title match and labelled "matched by title". Manga → anime is exact, via
+  title match and labelled "matched by title". Manga to anime is exact, via
   MangaDex's published AniList id.
-- **Chapter lists can contain duplicates**, several scanlation groups publish
-  the same chapter. That is real MangaDex data; the group is shown so you can
-  choose.
-- **Source ratings are local.** With no account system there is no community
-  average, and inventing one would be fabricating data.
+- **Chapter lists can contain duplicates**, because several scanlation groups
+  publish the same chapter. That is real MangaDex data; the group is shown so
+  you can choose.
+- **Source ratings and recommendations are local.** With no account system there
+  is no community average, and inventing one would be fabricating data.
+
+---
+
+## Licence and content
+
+Hoshi.Anime is a client. It hosts no anime, no manga and no video, and it stores
+nothing on a server. All metadata, page images and playback come from the
+third-party services named above, under their own terms. Nothing in this app
+bypasses authentication, DRM, paywalls or provider protections.

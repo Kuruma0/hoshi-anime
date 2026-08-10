@@ -44,9 +44,10 @@ yarn-error.*
 /ios
 /android
 
-# editors
+# editors and local agent tooling
 .vscode/
 .idea/
+.claude/
 *.swp
 
 # OS

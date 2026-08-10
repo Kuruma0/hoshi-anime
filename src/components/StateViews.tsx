@@ -1,4 +1,5 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useIsOnline } from '@/data/offline';
 import { Button } from '@/design/Button';
 import { Text } from '@/design/Text';
 import { color, gutter, space } from '@/design/tokens';
@@ -12,7 +13,23 @@ import { messageFor } from '@/lib/errors';
  * message a user sees depends on what actually failed.
  */
 
+/**
+ * Offline is shown here rather than as a spinner because that is the truth:
+ * with no connection the query is paused, not loading, and an indicator that
+ * can never resolve is the one state worse than an error.
+ */
 export function LoadingState({ label = 'Loading' }: { label?: string }) {
+  const online = useIsOnline();
+
+  if (!online) {
+    return (
+      <EmptyState
+        title="You are offline."
+        detail="Saved chapters are in your library under Offline. This will load when the connection returns."
+      />
+    );
+  }
+
   return (
     <View style={styles.container} accessibilityRole="progressbar" accessibilityLabel={label}>
       <ActivityIndicator color={color.accentBright} />

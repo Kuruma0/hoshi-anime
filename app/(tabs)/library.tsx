@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader } from '@/components/AppHeader';
 import { ContinueRow } from '@/components/ContinueRow';
+import { OfflineLibrary } from '@/components/OfflineLibrary';
 import { PosterGrid } from '@/components/PosterGrid';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Segmented } from '@/components/Segmented';
@@ -13,14 +14,20 @@ import {
   useContinueWatching,
   useLibraryEntries,
 } from '@/data/library';
+import {
+  useAvailableStorage,
+  useDeleteOfflineManga,
+  useOfflineLibrary,
+} from '@/data/offline';
 import { color, space } from '@/design/tokens';
 import { routes } from '@/lib/routes';
 
-type Tab = 'anime' | 'manga';
+type Tab = 'anime' | 'manga' | 'offline';
 
 const TABS = [
   { value: 'anime' as const, label: 'Anime' },
   { value: 'manga' as const, label: 'Manga' },
+  { value: 'offline' as const, label: 'Offline' },
 ];
 
 /**
@@ -34,9 +41,15 @@ export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('anime');
 
-  const entries = useLibraryEntries(tab);
+  // The saved list only has anime and manga; offline is its own view.
+  const listKind: 'anime' | 'manga' = tab === 'offline' ? 'manga' : tab;
+  const entries = useLibraryEntries(listKind);
   const continueWatching = useContinueWatching();
   const continueReading = useContinueReading();
+
+  const offline = useOfflineLibrary();
+  const deleteManga = useDeleteOfflineManga();
+  const availableBytes = useAvailableStorage();
 
   const items = (entries.data ?? []).map((entry) => ({
     id: entry.id,
@@ -79,7 +92,15 @@ export default function LibraryScreen() {
         <Segmented options={TABS} value={tab} onChange={setTab} accessibilityLabel="Library" />
       </View>
 
-      {isEmpty ? (
+      {tab === 'offline' ? (
+        <OfflineLibrary
+          manga={offline.data?.manga ?? []}
+          totalBytes={offline.data?.bytes ?? 0}
+          availableBytes={availableBytes}
+          onOpenChapter={(mangaId, chapterId) => router.push(routes.read(mangaId, chapterId))}
+          onDeleteManga={(mangaId) => deleteManga.mutate(mangaId)}
+        />
+      ) : isEmpty ? (
         <EmptyState
           title={`Your ${tab} list is empty.`}
           detail={`Titles you save will appear here, along with anything you've started.`}
@@ -90,16 +111,16 @@ export default function LibraryScreen() {
           showsVerticalScrollIndicator={false}
         >
           <ContinueRow
-            title={tab === 'anime' ? 'Continue watching' : 'Continue reading'}
+            title={listKind === 'anime' ? 'Continue watching' : 'Continue reading'}
             items={resumeItems}
-            onSelect={(id) => router.push(routes.detail(tab, id))}
+            onSelect={(id) => router.push(routes.detail(listKind, id))}
           />
 
           {items.length > 0 ? (
             <View style={styles.grid}>
               <PosterGrid
                 items={items}
-                onSelect={(id) => router.push(routes.detail(tab, id))}
+                onSelect={(id) => router.push(routes.detail(listKind, id))}
                 emptyTitle="Nothing saved yet."
               />
             </View>

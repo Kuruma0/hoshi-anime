@@ -9,6 +9,7 @@ import { ReaderControls } from '@/components/reader/ReaderControls';
 import { VerticalReader } from '@/components/reader/VerticalReader';
 import { ErrorState, LoadingState } from '@/components/StateViews';
 import { useReadProgress, useSaveReadProgress } from '@/data/library';
+import { useOfflineChapter } from '@/data/offline';
 import { useChapterPages, useChapters, useManga } from '@/data/manga';
 import { Text } from '@/design/Text';
 import { color, gutter, hairline, space, touchTarget } from '@/design/tokens';
@@ -39,7 +40,9 @@ export default function ReaderScreen() {
 
   const manga = useManga(id);
   const chapters = useChapters(id);
-  const pages = useChapterPages(chapterId);
+  const offline = useOfflineChapter(chapterId);
+  // Skip the network entirely when the chapter is already on the device.
+  const pages = useChapterPages(offline.data?.status === 'downloaded' ? undefined : chapterId);
   const savedProgress = useReadProgress(id);
   const saveProgress = useSaveReadProgress();
 
@@ -58,12 +61,24 @@ export default function ReaderScreen() {
   const restoredFor = useRef<string | undefined>(undefined);
   const lastSavedPage = useRef(-1);
 
+  /**
+   * Pages, preferring anything already on the device.
+   *
+   * A downloaded chapter reads identically to a streamed one: same reader, same
+   * modes, same progress. Only the source of the images differs, and local
+   * files also work with no network at all.
+   */
   const pageUrls = useMemo(() => {
+    if (offline.data?.status === 'downloaded' && offline.data.pages.length > 0) {
+      return offline.data.pages;
+    }
     if (!pages.data) return [];
     return dataSaver && pages.data.dataSaverPages.length > 0
       ? pages.data.dataSaverPages
       : pages.data.pages;
-  }, [pages.data, dataSaver]);
+  }, [offline.data, pages.data, dataSaver]);
+
+  const readingOffline = offline.data?.status === 'downloaded';
 
   const readableChapters = useMemo(
     () =>
@@ -146,8 +161,8 @@ export default function ReaderScreen() {
     });
   }, []);
 
-  if (pages.isPending) return <LoadingState label="Loading chapter" />;
-  if (pages.error) {
+  if (!readingOffline && pages.isPending) return <LoadingState label="Loading chapter" />;
+  if (!readingOffline && pages.error) {
     return <ErrorState error={pages.error} onRetry={() => void pages.refetch()} />;
   }
 

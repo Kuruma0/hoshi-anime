@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ChapterDownloadButton } from '@/components/ChapterDownloadButton';
 import { CrossLinkRow } from '@/components/CrossLinkRow';
 import { DetailHero } from '@/components/DetailHero';
 import { FloatingBack } from '@/components/FloatingBack';
@@ -11,6 +12,11 @@ import { SourcePicker } from '@/components/SourcePicker';
 import { ErrorState, LoadingState } from '@/components/StateViews';
 import { useIsSaved, useReadProgress, useToggleSaved } from '@/data/library';
 import { useChapters, useManga } from '@/data/manga';
+import {
+  useDeleteOfflineChapter,
+  useDownloadChapter,
+  useOfflineLibrary,
+} from '@/data/offline';
 import { useAnimeForManga } from '@/data/relations';
 import { useMangaSources, useRateSource, useSourceRatings } from '@/data/sources';
 import { useContentNavigation } from '@/lib/navigation';
@@ -41,6 +47,22 @@ export default function MangaDetailScreen() {
   const toggleSaved = useToggleSaved();
   const progress = useReadProgress(id);
   const animeLink = useAnimeForManga(manga.data);
+
+  const download = useDownloadChapter();
+  const removeDownload = useDeleteOfflineChapter();
+  const offlineLibrary = useOfflineLibrary();
+
+  // Which chapters of this manga are already on the device.
+  const downloadedIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const entry of offlineLibrary.data?.manga ?? []) {
+      if (entry.mangaId !== id) continue;
+      for (const chapter of entry.chapters) {
+        if (chapter.status === 'downloaded') ids.add(chapter.chapterId);
+      }
+    }
+    return ids;
+  }, [offlineLibrary.data, id]);
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const { sources, isPending: sourcesPending } = useMangaSources(manga.data);
@@ -168,6 +190,10 @@ export default function MangaDetailScreen() {
           onRetry={() => void chapters.refetch()}
           currentChapterId={progress.data?.chapterId}
           onSelect={openChapter}
+          downloadedIds={downloadedIds}
+          downloadProgress={download.progress}
+          onDownload={(chapter) => download.mutate({ manga: data, chapter })}
+          onDeleteDownload={(chapterId) => removeDownload.mutate(chapterId)}
         />
 
         {chapters.hasNextPage ? (
@@ -211,6 +237,10 @@ function ChapterList({
   onRetry,
   onSelect,
   currentChapterId,
+  downloadedIds,
+  downloadProgress,
+  onDownload,
+  onDeleteDownload,
 }: {
   chapters: Chapter[];
   isLoading: boolean;
@@ -218,6 +248,10 @@ function ChapterList({
   onRetry: () => void;
   onSelect: (chapter: Chapter) => void;
   currentChapterId?: string;
+  downloadedIds?: ReadonlySet<string>;
+  downloadProgress: Record<string, number>;
+  onDownload: (chapter: Chapter) => void;
+  onDeleteDownload: (chapterId: string) => void;
 }) {
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState error={error} onRetry={onRetry} />;
@@ -258,7 +292,7 @@ function ChapterList({
               tone={isCurrent ? 'accent' : 'muted'}
               style={styles.chapterNumber}
             >
-              {chapter.number ?? ', '}
+              {chapter.number ?? '-'}
             </Text>
 
             <View style={styles.chapterText}>
@@ -276,7 +310,16 @@ function ChapterList({
               <Text variant="meta" tone="faint">
                 Off-site
               </Text>
-            ) : null}
+            ) : (
+              // Off-site chapters have no pages to save, so no control.
+              <ChapterDownloadButton
+                downloaded={downloadedIds?.has(chapter.id)}
+                progress={downloadProgress[chapter.id]}
+                onDownload={() => onDownload(chapter)}
+                onDelete={() => onDeleteDownload(chapter.id)}
+                label={`chapter ${chapter.number ?? ''}`.trim()}
+              />
+            )}
           </Pressable>
         );
       })}

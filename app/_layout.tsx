@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { AccessibilityInfo, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useOnlineManagerBridge } from '@/data/offline';
 import { persistOptions } from '@/data/persistence';
 import { queryClient } from '@/data/queryClient';
 import { color, type } from '@/design/tokens';
@@ -35,6 +36,7 @@ const theme = {
 
 export default function RootLayout() {
   useSystemReduceMotion();
+  useOnlineManagerBridge();
 
   return (
     <View style={{ flex: 1 }}>
