@@ -4,6 +4,7 @@ import type { WatchProgress } from '@/library/types';
 import {
   buildTasteProfile,
   classifyWatch,
+  dedupeById,
   diversify,
   eraSimilarity,
   explain,
@@ -160,6 +161,76 @@ describe('watch history produces a usable profile on its own', () => {
     ]);
 
     expect(scoredOf(ranked)[0]).toBe('match');
+  });
+});
+
+/*
+  Candidates are pooled from four sections and a popular show legitimately
+  appears in several, so the flattened pool repeats titles. Those repeats used
+  to survive scoring and reach the rail, which keys on anime.id: duplicate keys
+  make a recycling list render blank cells, which is what the gaps in
+  Recommended for you were.
+*/
+describe('dedupeById', () => {
+  it('keeps the first occurrence and drops repeats', () => {
+    const result = dedupeById([
+      anime({ id: 'a' }),
+      anime({ id: 'b' }),
+      anime({ id: 'a' }),
+    ]);
+    expect(result.map((item) => item.id)).toEqual(['a', 'b']);
+  });
+
+  it('drops entries with no id, which cannot be keyed', () => {
+    const result = dedupeById([anime({ id: 'a' }), { id: '' } as Anime]);
+    expect(result.map((item) => item.id)).toEqual(['a']);
+  });
+
+  it('leaves an already unique list untouched', () => {
+    const list = [anime({ id: 'a' }), anime({ id: 'b' })];
+    expect(dedupeById(list).map((i) => i.id)).toEqual(['a', 'b']);
+  });
+});
+
+describe('ranking never emits a duplicate id', () => {
+  const profile = buildTasteProfile(
+    [
+      signal({ anime: anime({ id: 'h1', genres: ['Action'], score: 80 }) }),
+      signal({ anime: anime({ id: 'h2', genres: ['Action'], score: 80 }) }),
+    ],
+    NOW
+  );
+
+  // The exact shape candidatePools() produces: four sections, overlapping.
+  const shared = anime({ id: 'anilist:21', genres: ['Action'], score: 88 });
+  const pools = [
+    [shared, anime({ id: 'anilist:5', genres: ['Action'], score: 70 })],
+    [shared, anime({ id: 'anilist:6', genres: ['Action'], score: 71 })],
+    [shared, anime({ id: 'anilist:7', genres: ['Action'], score: 72 })],
+    [shared],
+  ];
+
+  it('returns each title once from an overlapping pool', () => {
+    const ids = scoredOf(rankByTaste(profile, pools.flat(), { limit: 20 }));
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.filter((id) => id === 'anilist:21')).toHaveLength(1);
+  });
+
+  it('still returns every distinct title, rather than trimming the list', () => {
+    const ids = scoredOf(rankByTaste(profile, pools.flat(), { limit: 20 }));
+    expect(ids).toContain('anilist:5');
+    expect(ids).toContain('anilist:6');
+    expect(ids).toContain('anilist:7');
+  });
+
+  it('deduplicates the similar-titles path too', () => {
+    const ids = scoredOf(
+      rankBySimilarity(seed, [
+        anime({ id: 'dup', genres: ['Action', 'Drama'], score: 80 }),
+        anime({ id: 'dup', genres: ['Action', 'Drama'], score: 80 }),
+      ])
+    );
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
 

@@ -13,7 +13,7 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { StarRating } from '@/components/StarRating';
 import { ErrorState, LoadingState } from '@/components/StateViews';
 import { Trailer } from '@/components/Trailer';
-import { toRowItem, useAnime, useAnimeEpisodes } from '@/data/anime';
+import { toRowItems, useAnime, useAnimeEpisodes } from '@/data/anime';
 import { useSimilarAnime } from '@/data/recommendations';
 import { useIsSaved, useToggleSaved, useWatchProgress } from '@/data/library';
 import { useAnimeSeasons, useMangaForAnime } from '@/data/relations';
@@ -214,7 +214,7 @@ export default function AnimeDetailScreen() {
         {(similar.data?.length ?? 0) > 0 ? (
           <ContentRow
             title="You may also like"
-            items={(similar.data ?? []).map(toRowItem)}
+            items={toRowItems(similar.data ?? [], 'similar')}
             onSelect={navigate.openAnime}
           />
         ) : null}

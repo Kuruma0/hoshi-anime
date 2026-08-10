@@ -248,6 +248,24 @@ why and how to re-enable. Do not wire it back in without checking it resolves.
 
 ## Library / framework gotchas
 
+### Duplicate ids make FlashList render blank cells
+Rails key on `anime.id`. Feed the same id twice and the recycling list leaves
+gaps where cards should be, which reads as "the data is missing" rather than
+"the keys collide". This happened for real: recommendation candidates are pooled
+from four sections and a popular show appears in several, so `pools.flat()`
+carried repeats straight through scoring into the rail.
+
+Two defences, both kept:
+- `dedupeById` inside `rankByTaste` and `rankBySimilarity`. Returning a list
+  that is safe to render is the ranking contract, so every caller benefits.
+- `toRowItems` in `data/anime.ts`, which drops entries with no id, no title or a
+  repeated id before the array reaches a list, and warns in development. Filter
+  before layout, never after.
+
+`interleave` already deduped, which is why only the personalised row broke and
+the cold start row looked fine. That asymmetry is a useful smell: if one path
+renders cleanly and another does not, compare their dedupe, not their styling.
+
 - **expo-router SDK 56+ is not compatible with `@react-navigation/native`** and
   throws at bundle time. Import `ThemeProvider` / `DarkTheme` from `expo-router`.
 - `tabBarIcon` returning `null` renders a fallback glyph, return a zero-size

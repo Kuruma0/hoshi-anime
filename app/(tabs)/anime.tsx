@@ -9,7 +9,7 @@ import { GenreRail } from '@/components/GenreRail';
 import { SectionDivider } from '@/components/SectionDivider';
 import {
   SECTION_LABEL,
-  toRowItem,
+  toRowItems,
   useAnimeGenres,
   useAnimeSection,
   useSupportsSection,
@@ -94,16 +94,15 @@ export default function AnimeHomeScreen() {
           trending, popular, top rated and this season when there is no history
           to personalise from, and the row renders its own loading state while
           the profile is built, so the rest of the page paints first.
-        */}
-        {/*
-          Error is passed through rather than swallowed. Without it a failed
-          recommendation query renders the rail's generic empty label, so a
-          real outage is indistinguishable from having nothing to show, which
-          is the state that hid the last bug for so long.
+
+          Error is passed through rather than swallowed, so a real outage is
+          distinguishable from having nothing to show. Entries go through
+          toRowItems so the array handed to the list is exactly what should
+          appear: one slot per renderable title, no repeats.
         */}
         <ContentRow
           title="Recommended for you"
-          items={(recommended.data?.items ?? []).map(toRowItem)}
+          items={toRowItems(recommended.data?.items ?? [], 'recommendations')}
           caption={recommended.data?.reason}
           isLoading={recommended.isPending}
           error={recommended.error}
@@ -133,7 +132,7 @@ function AnimeRail({ section }: { section: AnimeSection }) {
   return (
     <ContentRow
       title={SECTION_LABEL[section]}
-      items={(query.data?.items ?? []).map(toRowItem)}
+      items={toRowItems(query.data?.items ?? [], `section:${section}`)}
       isLoading={query.isPending}
       error={query.error}
       onRetry={() => void query.refetch()}

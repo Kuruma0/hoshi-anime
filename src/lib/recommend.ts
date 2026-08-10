@@ -527,6 +527,32 @@ export function diversify(scored: readonly ScoredAnime[], limit: number): Scored
 /* Pipeline                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Drop repeats of the same title, keeping the first occurrence.
+ *
+ * Candidates are pooled from four sections and a popular show legitimately
+ * appears in several of them, so the flattened pool contains the same anime
+ * more than once. Left alone those survive scoring (identical inputs, identical
+ * score) and reach the rail, where the list is keyed on `anime.id`. Duplicate
+ * keys make a recycling list render blank cells, which is what the gaps in
+ * Recommended for you were.
+ *
+ * Deduping belongs here rather than at one call site: returning a list safe to
+ * render is the ranking contract, so every caller gets it.
+ */
+export function dedupeById(candidates: readonly Anime[]): Anime[] {
+  const seen = new Set<string>();
+  const result: Anime[] = [];
+
+  for (const candidate of candidates) {
+    if (!candidate?.id || seen.has(candidate.id)) continue;
+    seen.add(candidate.id);
+    result.push(candidate);
+  }
+
+  return result;
+}
+
 export interface RankOptions {
   /** Ids the viewer already has or has finished. Never recommended back. */
   exclude?: ReadonlySet<string>;
@@ -556,7 +582,7 @@ export function rankByTaste(
 
   const { exclude, limit = 20, threshold = PERSONAL_THRESHOLD } = options;
 
-  const scored = candidates
+  const scored = dedupeById(candidates)
     .filter((candidate) => !exclude?.has(candidate.id))
     .map((candidate) => {
       const breakdown = scoreAgainstProfile(profile, candidate);
@@ -586,7 +612,7 @@ export function rankBySimilarity(
 ): ScoredAnime[] {
   const { exclude, limit = 20, threshold = SIMILAR_THRESHOLD } = options;
 
-  const scored = candidates
+  const scored = dedupeById(candidates)
     .filter((candidate) => candidate.id !== seed.id && !exclude?.has(candidate.id))
     .map((candidate) => {
       const breakdown = scoreAgainstSeed(seed, candidate);

@@ -166,6 +166,38 @@ export function toRowItem(anime: Anime) {
   };
 }
 
+/**
+ * Map a list into rail entries, dropping anything that cannot render.
+ *
+ * A rail keys on `id` and lays out one slot per entry, so an entry with no id,
+ * a repeated id or no title costs a visible gap rather than being skipped.
+ * Validating here, once, means the array handed to the list is exactly what
+ * should appear: no filtering happens after layout.
+ *
+ * Rejected entries are logged in development rather than silently swallowed,
+ * so a provider that starts returning partial records is still noticed.
+ */
+export function toRowItems(list: readonly (Anime | undefined | null)[], source: string) {
+  const seen = new Set<string>();
+  const items: ReturnType<typeof toRowItem>[] = [];
+  const rejected: unknown[] = [];
+
+  for (const anime of list) {
+    if (!anime?.id || !anime.title?.trim() || seen.has(anime.id)) {
+      rejected.push(anime?.id ?? anime);
+      continue;
+    }
+    seen.add(anime.id);
+    items.push(toRowItem(anime));
+  }
+
+  if (__DEV__ && rejected.length > 0) {
+    console.warn(`[${source}] dropped ${rejected.length} unrenderable entries`, rejected);
+  }
+
+  return items;
+}
+
 function captionFor(anime: Anime): string | undefined {
   if (anime.status === 'airing' && anime.nextEpisode) {
     return `Ep ${anime.nextEpisode.number - 1} out`;
