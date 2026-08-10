@@ -15,6 +15,7 @@ import {
   useSupportsSection,
 } from '@/data/anime';
 import { useContinueWatching } from '@/data/library';
+import { useRecommendedForYou } from '@/data/recommendations';
 import { color, space } from '@/design/tokens';
 import { routes } from '@/lib/routes';
 import type { AnimeSection } from '@/providers/types';
@@ -39,6 +40,7 @@ export default function AnimeHomeScreen() {
   const continueWatching = useContinueWatching();
   const airing = useAnimeSection('airing');
   const supportsAiring = useSupportsSection('airing');
+  const recommended = useRecommendedForYou(12);
 
   return (
     <View style={styles.screen}>
@@ -76,6 +78,17 @@ export default function AnimeHomeScreen() {
             onSelect={(id) => router.push(routes.anime(id))}
           />
         ) : null}
+
+        {/*
+          Only appears once the viewer has saved something. With no history the
+          section is absent rather than filled with trending under a personal
+          heading, which would be a lie about where it came from.
+        */}
+        <ContentRow
+          title="Recommended for you"
+          items={(recommended.data ?? []).map(toRowItem)}
+          onSelect={(id) => router.push(routes.anime(id))}
+        />
 
         <SectionDivider title="Discover" />
 

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Anime } from '@/domain/anime';
-import { makeId, parseId } from '@/domain/common';
+import { makeId } from '@/domain/common';
 import type { Manga } from '@/domain/manga';
 import { isSeriesFormat, type RelatedMedia, type SeasonEntry } from '@/domain/relations';
 import { findBestMatch } from '@/lib/titleMatch';
@@ -18,7 +18,6 @@ import { getAnimeProvider, getMangaProvider } from '@/providers/registry';
  */
 
 const relationKeys = {
-  anime: (id: string) => ['relations', 'anime', id] as const,
   seasons: (id: string) => ['relations', 'seasons', id] as const,
   mangaForAnime: (id: string) => ['relations', 'manga-for-anime', id] as const,
   animeForManga: (id: string) => ['relations', 'anime-for-manga', id] as const,
@@ -26,15 +25,6 @@ const relationKeys = {
 
 function relationsSupported(): boolean {
   return getAnimeProvider().supportsRelations;
-}
-
-export function useAnimeRelations(id: string | undefined) {
-  return useQuery({
-    queryKey: relationKeys.anime(id ?? ''),
-    queryFn: ({ signal }) => getAnimeProvider().getRelations!(id!, 'anime', signal),
-    enabled: Boolean(id) && relationsSupported(),
-    staleTime: 60 * 60 * 1000,
-  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -248,17 +238,3 @@ export function useAnimeForManga(manga: Manga | undefined) {
   });
 }
 
-/** Related works worth showing as a rail, excluding seasons and adaptations. */
-export function relatedWorks(relations: RelatedMedia[] | undefined): RelatedMedia[] {
-  if (!relations) return [];
-  return relations.filter(
-    (relation) =>
-      relation.kind === 'anime' &&
-      (relation.relation === 'sideStory' || relation.relation === 'alternative')
-  );
-}
-
-/** True when an id belongs to the given provider. */
-export function isFromProvider(id: string, provider: string): boolean {
-  return parseId(id).provider === provider;
-}

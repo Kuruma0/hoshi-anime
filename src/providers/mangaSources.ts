@@ -88,7 +88,3 @@ export function implementedSources(providers: MangaProvider[]): RegisteredSource
     .filter((entry): entry is RegisteredSource => entry !== undefined);
 }
 
-/** Sources researched but not yet integrated. Surfaced in docs, not in the UI. */
-export function deferredSources(): MangaSourceDescriptor[] {
-  return MANGA_SOURCE_CATALOGUE.filter((entry) => entry.status === 'deferred');
-}

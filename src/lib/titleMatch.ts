@@ -44,17 +44,6 @@ export function normalizeForCrossProvider(input: string): string {
   return normalizeTitle(input).replace(SEASON_NOISE, ' ').trim().replace(/\s+/g, ' ');
 }
 
-/** Every distinct normalised key for a title and its variants. */
-export function titleKeys(primary: string, alternatives: readonly string[] = []): Set<string> {
-  const keys = new Set<string>();
-  for (const title of [primary, ...alternatives]) {
-    if (!title) continue;
-    const key = normalizeTitle(title);
-    if (key) keys.add(key);
-  }
-  return keys;
-}
-
 export interface TitleBearer {
   title: string;
   originalTitle?: string;

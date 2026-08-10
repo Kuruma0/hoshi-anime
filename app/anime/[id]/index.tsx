@@ -1,10 +1,11 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ContentRow } from '@/components/ContentRow';
 import { CrossLinkRow } from '@/components/CrossLinkRow';
 import { DetailHero } from '@/components/DetailHero';
+import { EpisodeGrid } from '@/components/EpisodeGrid';
 import { FloatingBack } from '@/components/FloatingBack';
 import { MetaList } from '@/components/MetaRow';
 import { SeasonSelector } from '@/components/SeasonSelector';
@@ -12,18 +13,13 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { StarRating } from '@/components/StarRating';
 import { ErrorState, LoadingState } from '@/components/StateViews';
 import { Trailer } from '@/components/Trailer';
-import {
-  toRowItem,
-  useAnime,
-  useAnimeEpisodes,
-  useAnimeRecommendations,
-} from '@/data/anime';
+import { toRowItem, useAnime, useAnimeEpisodes } from '@/data/anime';
+import { useSimilarAnime } from '@/data/recommendations';
 import { useIsSaved, useToggleSaved, useWatchProgress } from '@/data/library';
 import { useAnimeSeasons, useMangaForAnime } from '@/data/relations';
 import { Button } from '@/design/Button';
 import { Text } from '@/design/Text';
-import { color, gutter, hairline, sectionGap, space, touchTarget } from '@/design/tokens';
-import type { Episode } from '@/domain/anime';
+import { color, gutter, sectionGap, space } from '@/design/tokens';
 import { useContentNavigation } from '@/lib/navigation';
 import { routes } from '@/lib/routes';
 import { formatCountdown } from '@/lib/schedule';
@@ -45,7 +41,7 @@ export default function AnimeDetailScreen() {
 
   const anime = useAnime(id);
   const episodes = useAnimeEpisodes(id);
-  const recommendations = useAnimeRecommendations(id);
+  const similar = useSimilarAnime(anime.data);
   const seasons = useAnimeSeasons(anime.data);
   const mangaLink = useMangaForAnime(anime.data);
   const saved = useIsSaved(id);
@@ -197,106 +193,32 @@ export default function AnimeDetailScreen() {
 
         <View style={styles.block}>
           <SectionHeader title={`Episodes${aired.length > 0 ? ` · ${aired.length}` : ''}`} />
-          <EpisodeList
-            episodes={episodes.data ?? []}
-            isLoading={episodes.isPending}
-            error={episodes.error}
-            onRetry={() => void episodes.refetch()}
-            currentEpisode={progress.data?.episodeNumber}
-            onSelect={openEpisode}
-          />
+
+          {episodes.isPending ? (
+            <LoadingState />
+          ) : episodes.error ? (
+            <ErrorState error={episodes.error} onRetry={() => void episodes.refetch()} />
+          ) : (
+            <EpisodeGrid
+              episodes={episodes.data ?? []}
+              currentEpisode={progress.data?.episodeNumber}
+              // Everything before the episode in progress has been seen.
+              watchedThrough={
+                progress.data ? Math.max(0, progress.data.episodeNumber - 1) : undefined
+              }
+              onSelect={openEpisode}
+            />
+          )}
         </View>
 
-        {(recommendations.data?.length ?? 0) > 0 ? (
+        {(similar.data?.length ?? 0) > 0 ? (
           <ContentRow
-            title="More like this"
-            items={(recommendations.data ?? []).map(toRowItem)}
+            title="You may also like"
+            items={(similar.data ?? []).map(toRowItem)}
             onSelect={navigate.openAnime}
           />
         ) : null}
       </ScrollView>
-    </View>
-  );
-}
-
-function EpisodeList({
-  episodes,
-  isLoading,
-  error,
-  onRetry,
-  onSelect,
-  currentEpisode,
-}: {
-  episodes: Episode[];
-  isLoading: boolean;
-  error: unknown;
-  onRetry: () => void;
-  onSelect: (episodeNumber: number) => void;
-  currentEpisode?: number;
-}) {
-  if (isLoading) return <LoadingState />;
-  if (error) return <ErrorState error={error} onRetry={onRetry} />;
-
-  if (episodes.length === 0) {
-    return (
-      <Text variant="body" tone="faint" style={styles.emptyEpisodes}>
-        No episode information available yet.
-      </Text>
-    );
-  }
-
-  return (
-    <View>
-      {episodes.map((episode) => {
-        const isCurrent = episode.number === currentEpisode;
-
-        return (
-          <Pressable
-            key={episode.id}
-            onPress={() => onSelect(episode.number)}
-            disabled={episode.upcoming}
-            accessibilityRole="button"
-            accessibilityLabel={
-              episode.upcoming
-                ? `Episode ${episode.number}, not yet aired`
-                : `Play episode ${episode.number}${episode.title ? `, ${episode.title}` : ''}`
-            }
-            accessibilityState={{ disabled: episode.upcoming, selected: isCurrent }}
-            style={({ pressed }) => [
-              styles.episode,
-              isCurrent && styles.episodeCurrent,
-              pressed && !episode.upcoming && styles.episodePressed,
-            ]}
-          >
-            <Text
-              variant="meta"
-              tone={episode.upcoming ? 'faint' : isCurrent ? 'accent' : 'muted'}
-              style={styles.episodeNumber}
-            >
-              {String(episode.number).padStart(2, '0')}
-            </Text>
-
-            {/*
-              The real episode title where the provider has one, falling back to
-              the number. Nothing here is invented.
-            */}
-            <Text
-              variant="body"
-              tone={episode.upcoming ? 'faint' : 'default'}
-              numberOfLines={2}
-              style={styles.episodeTitle}
-            >
-              {episode.title ?? `Episode ${episode.number}`}
-            </Text>
-
-            {episode.upcoming ? (
-              <Text variant="meta" tone="faint">
-                {episode.airedAt ? formatCountdown(episode.airedAt) : 'Upcoming'}
-              </Text>
-            ) : null}
-          </Pressable>
-        );
-      })}
     </View>
   );
 }
@@ -336,18 +258,4 @@ const styles = StyleSheet.create({
   nextAiring: { paddingHorizontal: gutter, marginTop: space.md },
   block: { marginTop: sectionGap },
   synopsis: { paddingHorizontal: gutter },
-  emptyEpisodes: { paddingHorizontal: gutter },
-  episode: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: touchTarget,
-    paddingHorizontal: gutter,
-    paddingVertical: space.md,
-    borderTopWidth: hairline,
-    borderTopColor: color.line,
-  },
-  episodeCurrent: { backgroundColor: color.surface },
-  episodePressed: { backgroundColor: color.surfaceRaised },
-  episodeNumber: { width: 32 },
-  episodeTitle: { flex: 1, marginRight: space.md },
 });

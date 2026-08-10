@@ -10,6 +10,7 @@ import { Button } from '@/design/Button';
 import { useAnime, useAnimeEpisodes } from '@/data/anime';
 import { useSaveWatchProgress, useWatchProgress } from '@/data/library';
 import { usePlaybackTarget, useVideoProvider } from '@/data/playback';
+import { PlaybackNotice } from '@/components/PlaybackNotice';
 import { ProviderPicker } from '@/components/ProviderPicker';
 import { isPlaybackFailureSentinel } from '@/providers/stream/vidlink';
 import { Text } from '@/design/Text';
@@ -91,6 +92,9 @@ export default function WatchScreen() {
 
       {/* Switching player is reachable without leaving playback. */}
       <ProviderPicker providers={providers} activeId={activeId} onSelect={select} />
+
+      {/* Explains the player's pre-roll once, then stays out of the way. */}
+      <PlaybackNotice />
 
       {playback.isPending ? (
         <LoadingState label="Loading episode" />

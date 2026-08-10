@@ -62,8 +62,3 @@ export async function rateSource(sourceId: string, stars: number): Promise<void>
   await AsyncStorage.setItem(KEY, JSON.stringify([...map.values()]));
 }
 
-export async function clearSourceRating(sourceId: string): Promise<void> {
-  const map = await load();
-  if (!map.delete(sourceId)) return;
-  await AsyncStorage.setItem(KEY, JSON.stringify([...map.values()]));
-}

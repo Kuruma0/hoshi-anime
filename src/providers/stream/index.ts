@@ -13,6 +13,13 @@
 export { PlaybackService, isPlayable } from './playbackService';
 export type { EmbedRuntime, PlaybackProgress } from './types';
 
+/**
+ * VidLink: DISABLED.
+ *
+ * Exported so it stays compiled and type checked, but deliberately not
+ * registered in registry.ts. See vidlink.ts for why, and for how to turn it
+ * back on.
+ */
 export {
   parseVidLinkProgress,
   VIDLINK_EVENT_BRIDGE,

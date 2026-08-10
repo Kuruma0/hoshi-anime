@@ -4,7 +4,21 @@ import type { AnimeStreamProvider, PlaybackTarget, StreamOption } from '../types
 import type { EmbedRuntime, PlaybackProgress } from './types';
 
 /**
- * VidLink playback.
+ * VidLink playback. DISABLED, not deleted.
+ *
+ * This provider is deliberately absent from providers/registry.ts, so nothing
+ * resolves through it and it is never offered to a viewer. It is kept because
+ * the integration is correct and only the service is unavailable.
+ *
+ * Why it is off: VidLink returns "episode not found" for popular titles on both
+ * its anime route and its tv route, tested against several MyAnimeList and TMDB
+ * ids. The ids we send were verified correct, so the request is right and the
+ * service has nothing to return. VidKing and VidFast fail from the same
+ * connection while AniList and MangaDex work normally, which points at regional
+ * availability rather than an integration fault.
+ *
+ * To re-enable: add `new VidLinkProvider()` and `VIDLINK_RUNTIME` back to the
+ * two arrays in registry.ts. Nothing else needs to change.
  *
  * Documented embed player. It offers three addressing schemes and, unusually,
  * one of them is built for anime:

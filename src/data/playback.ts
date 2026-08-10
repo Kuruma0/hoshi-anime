@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback } from 'react';
 import type { Anime, Episode } from '@/domain/anime';
 import { useSettings } from '@/lib/settings';
 import { getStreamProvider } from '@/providers/registry';
@@ -59,22 +58,3 @@ export function usePlaybackTarget(
   });
 }
 
-/**
- * Players that failed after their page was already running.
- *
- * Some embeds answer HTTP 200 and only then report they have no stream, so the
- * failure cannot be seen during resolution. The player screen reports it here
- * and the UI offers the other provider.
- */
-export function useReportedFailure() {
-  const service = getStreamProvider();
-
-  return useCallback(
-    (providerId: string) => {
-      // Named for clarity at the call site; the service owns nothing stateful
-      // here, the screen decides what to show.
-      return service.listProviders().filter((provider) => provider.id !== providerId);
-    },
-    [service]
-  );
-}

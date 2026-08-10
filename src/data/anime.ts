@@ -132,16 +132,6 @@ export function useAnimeSearch(query: string) {
   });
 }
 
-export function useAnimeRecommendations(id: string | undefined) {
-  const provider = getAnimeProvider();
-
-  return useQuery({
-    queryKey: keys.anime.recommendations(id ?? ''),
-    queryFn: ({ signal }) => provider.getRecommendations!(id!, signal),
-    enabled: Boolean(id) && provider.supportsRecommendations,
-  });
-}
-
 /**
  * The weekly release schedule.
  *

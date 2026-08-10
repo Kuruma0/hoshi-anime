@@ -3,13 +3,9 @@ import { getSettings } from '@/lib/settings';
 import { AniListProvider } from './anilist';
 import { ArmMappingClient } from './mapping/arm';
 import { MangaDexProvider } from './mangadex';
-import {
-  PlaybackService,
-  VIDKING_RUNTIME,
-  VIDLINK_RUNTIME,
-  VidKingProvider,
-  VidLinkProvider,
-} from './stream';
+// VidLink is intentionally not imported: it is disabled, not deleted.
+// See providers/stream/vidlink.ts.
+import { PlaybackService, VIDKING_RUNTIME, VidKingProvider } from './stream';
 import type { AnimeProvider, MangaProvider } from './types';
 
 /**
@@ -73,19 +69,17 @@ export function getMappingClient(): ArmMappingClient {
 /**
  * Playback.
  *
- * Order here is the default the player offers first, and it is deliberately
- * VidKing. VidLink's anime route is the more elegant fit (keyed on the
- * MyAnimeList id AniList already gives us, so no cross-database lookup sits
- * between Watch and the player) but its reliability has not been verified, and
- * defaulting to an unverified player would be guessing on the viewer's behalf.
+ * VidKing is the only active player. VidLink is kept in the tree but is not
+ * registered here, so it is inactive rather than half wired: nothing resolves
+ * through it and it is never offered to a viewer. Re-enabling it is adding it
+ * back to these two arrays, and nothing else.
  *
- * The viewer chooses in the player and the choice is remembered, so this order
- * only decides what a first run sees.
+ * See providers/stream/vidlink.ts for why it is currently disabled.
  */
 export function getStreamProvider(): PlaybackService {
   streamProvider ??= new PlaybackService(
-    [new VidKingProvider(getMappingClient()), new VidLinkProvider()],
-    [VIDKING_RUNTIME, VIDLINK_RUNTIME]
+    [new VidKingProvider(getMappingClient())],
+    [VIDKING_RUNTIME]
   );
   return streamProvider;
 }
