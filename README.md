@@ -167,9 +167,14 @@ JavaScript challenge that mints a JWT and rejects clients that cannot run it.
 Getting a media URL from any of them means defeating the check, which this
 project does not do.
 
-The aggregator route was tried too, and is also closed: `api.consumet.org`, the
+The aggregator route was tried too, and is also closed. `api.consumet.org`, the
 resolver most projects depend on, now answers **HTTP 451, Unavailable For Legal
-Reasons**, and the surviving community deployments are dead.
+Reasons**. Miruro was checked separately and fails differently: its robots
+policy is permissive and its site is ordinary, but every `/api/` path on both
+`miruro.tv` and `miruro.to` returns **HTTP 410 Gone**, across every API version
+and every provider sub-path. 410 rather than 404 is deliberate: the endpoint
+existed and was permanently withdrawn. The surviving community deployments are
+dead too, so that whole layer is retired rather than relocated.
 
 Operator intent is explicit and settles it independently of the technical
 blocks. AnimeKai and Toonstream both publish `User-agent: * / Disallow: /`, and

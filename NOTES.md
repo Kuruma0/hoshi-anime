@@ -140,6 +140,7 @@ weekend re-running it:
 | Route | Result |
 |---|---|
 | `api.consumet.org` (the main community resolver) | **HTTP 451, Unavailable For Legal Reasons** |
+| `miruro.tv` / `miruro.to` API | **HTTP 410 Gone** on every path, see below |
 | `anify.tv`, `anify.eltik.cc` | timeout, 404 |
 | Community Vercel and Railway resolver deployments | 404 or 500, all dead |
 | Toonstream `/wp-json/`, `/wp/v2/posts`, `/sitemap.xml`, `/feed/` | challenge on every path |
@@ -159,6 +160,35 @@ That last line names this assistant's crawler directly, so probing AnimePahe
 stopped there. Two of the three sites disallow all automated clients outright.
 There is no version of integrating them that respects what their operators
 have written down.
+
+### Miruro, checked separately, also closed
+Worth recording because it fails differently and more politely than the other
+three, so it looks promising right up until it isn't.
+
+`miruro.tv/robots.txt` is **permissive**: it disallows only `/profile/`,
+`/settings` and `/callback`, does not disallow `/`, and names no crawler. No
+hostility to automated clients at all. The site itself is a normal Cloudflare
+fronted React app.
+
+The API is nonetheless gone. Every path under `/api/` on both `miruro.tv` and
+`miruro.to` returns **HTTP 410 Gone** with `{"error":"Gone"}`:
+
+```
+/api  /api/search  /api/anime  /api/sources
+/api/v1/*  /api/v2/*  /api/anilist/*  /api/hianime/*  /api/zoro/*  /api/animepahe/*
+```
+
+410 rather than 404 is the point. 404 would mean "wrong path, keep looking";
+410 means "this existed and has been permanently withdrawn". It is a blanket
+wildcard, identical response and identical 16 byte body across every version
+and every provider sub-path, so there is no surviving endpoint to find.
+`/backend/*` returns the SPA's own 404 shell, and `api.` / `backend.`
+subdomains do not resolve.
+
+Miruro was a front end over the same aggregator backends. With Consumet at 451
+and Miruro at 410, that whole layer is retired, not merely moved. Anything that
+still worked would have to come from scraping the SPA, whose media resolution
+runs client side against the backend that is answering 410 for us.
 
 Note the abstraction was already ready for a better provider: `PlaybackTarget`
 has a `direct` variant carrying `url`, `mimeType`, `headers` and `subtitles`,
